@@ -1,0 +1,115 @@
+<div class="scene">
+  <svg viewBox="0 0 1000 620" preserveAspectRatio="xMidYMax meet" role="img" [attr.aria-label]="'Sky at ' + store.sky().phase">
+    <defs>
+      <radialGradient id="sunGlow">
+        <stop offset="0" [attr.stop-color]="sun().color" stop-opacity="0.65" />
+        <stop offset="0.35" [attr.stop-color]="sun().color" stop-opacity="0.22" />
+        <stop offset="1" [attr.stop-color]="sun().color" stop-opacity="0" />
+      </radialGradient>
+      <radialGradient id="sunCore" cx="0.4" cy="0.4">
+        <stop offset="0" stop-color="#fffdf2" />
+        <stop offset="1" [attr.stop-color]="sun().color" />
+      </radialGradient>
+      <radialGradient id="moonGlow">
+        <stop offset="0" stop-color="#dfe7ff" stop-opacity="0.4" />
+        <stop offset="1" stop-color="#dfe7ff" stop-opacity="0" />
+      </radialGradient>
+      <radialGradient id="moonSurface" cx="0.35" cy="0.35">
+        <stop offset="0" stop-color="#ffffff" />
+        <stop offset="1" stop-color="#cfd8f2" />
+      </radialGradient>
+      <linearGradient id="groundFade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" style="stop-color: var(--ground)" />
+        <stop offset="0.7" style="stop-color: var(--ground)" />
+        <stop offset="1" style="stop-color: var(--ground); stop-opacity: 0" />
+      </linearGradient>
+      <clipPath id="aboveHorizon">
+        <rect x="-500" y="-200" width="2000" [attr.height]="horizon + 212" />
+      </clipPath>
+    </defs>
+
+    <!-- Path shared by sun (day) and moon (night); its prayer markers are drawn above the skyline -->
+    <path class="arc" [attr.d]="arcPath" />
+    @if (travelled(); as d) {
+      <path class="arc travelled" [attr.d]="d" />
+    }
+    <line class="hand" [attr.x1]="cx" [attr.y1]="horizon" [attr.x2]="hand().x" [attr.y2]="hand().y" />
+
+    <!-- Sun & moon on opposite ends of the wheel, clipped at the horizon -->
+    <g clip-path="url(#aboveHorizon)">
+      <circle [attr.cx]="sun().x" [attr.cy]="sun().y" [attr.r]="sun().glow" fill="url(#sunGlow)" />
+      <circle class="sun" [attr.cx]="sun().x" [attr.cy]="sun().y" [attr.r]="sun().r" fill="url(#sunCore)" />
+
+      <g [attr.transform]="'translate(' + moon().x + ' ' + moon().y + ')'">
+        <title>{{ moon().phaseName }}</title>
+        <circle [attr.r]="moon().glow" fill="url(#moonGlow)" />
+        <circle class="earthshine" [attr.r]="moonR" />
+        <path class="moon" [attr.d]="moon().path" fill="url(#moonSurface)" />
+      </g>
+    </g>
+
+    <circle class="pivot" [attr.cx]="cx" [attr.cy]="horizon" r="5" />
+
+    <!-- Skyline (drawn with its base at y=430, lifted to the horizon) -->
+    <g class="ground" transform="translate(0 -30)">
+      <path class="far" d="M-1500 436 C-600 420 -200 430 0 438 C120 420 220 428 330 434 C430 442 520 424 620 430 C760 438 880 420 1000 432 C1300 424 2000 436 2500 430 V470 H-1500Z" />
+
+      <g class="mosque" transform="translate(150 0)">
+        <rect x="590" y="322" width="14" height="130" />
+        <path d="M586 324 L597 286 L608 324Z" />
+        <rect x="585" y="352" width="24" height="5" rx="1" />
+        <rect x="778" y="322" width="14" height="130" />
+        <path d="M774 324 L785 286 L796 324Z" />
+        <rect x="773" y="352" width="24" height="5" rx="1" />
+
+        <rect x="610" y="404" width="36" height="48" />
+        <path d="M612 406 C612 390 622 382 628 380 C634 382 644 390 644 406Z" />
+        <rect x="734" y="404" width="36" height="48" />
+        <path d="M736 406 C736 390 746 382 752 380 C758 382 768 390 768 406Z" />
+
+        <rect x="636" y="390" width="108" height="62" />
+        <path d="M642 392 C642 350 668 334 690 326 C712 334 738 350 738 392Z" />
+        <rect x="689" y="306" width="2" height="22" />
+        <circle cx="690" cy="302" r="4" />
+      </g>
+
+      <g class="windows" transform="translate(150 0)" [class.lit]="isNight()">
+        <rect x="660" y="410" width="10" height="20" rx="5" />
+        <rect x="685" y="410" width="10" height="20" rx="5" />
+        <rect x="710" y="410" width="10" height="20" rx="5" />
+        <rect x="623" y="418" width="8" height="14" rx="4" />
+        <rect x="747" y="418" width="8" height="14" rx="4" />
+      </g>
+
+      <path class="near" d="M-1500 450 C-600 442 -200 448 0 452 C200 440 380 448 540 446 C700 444 860 452 1000 446 C1400 440 2000 450 2500 446 V680 H-1500Z" fill="url(#groundFade)" />
+    </g>
+
+    @for (m of markers(); track m.key) {
+      <g class="marker" [class.active]="m.active" [attr.transform]="'translate(' + m.x + ' ' + m.y + ')'">
+        <circle r="6" />
+        <text y="-16" text-anchor="middle" [class.covered]="m.covered">{{ m.label }} · {{ m.time | prayerTime }}</text>
+      </g>
+    }
+
+    <g class="horizon-labels">
+      <text [attr.x]="east" y="452" text-anchor="middle">{{ store.arc().start.label }}</text>
+      <text class="time" [attr.x]="east" y="474" text-anchor="middle">{{ store.arc().start.time | prayerTime }}</text>
+      <text [attr.x]="west" y="452" text-anchor="middle">{{ store.arc().end.label }}</text>
+      <text class="time" [attr.x]="west" y="474" text-anchor="middle">{{ store.arc().end.time | prayerTime }}</text>
+    </g>
+  </svg>
+
+  <div class="countdown" aria-live="polite">
+    <div class="eyebrow">Next prayer · <span class="phase">{{ store.sky().phase }}</span></div>
+    <div class="name">
+      {{ store.next().label }} <span class="arabic">{{ store.next().arabic }}</span>
+    </div>
+    <div class="timer">{{ store.countdown() }}</div>
+    <div class="meta">
+      Adhan <strong>{{ store.next().adhan | prayerTime }}</strong>
+      @if (store.next().iqamah; as iq) {
+        <span class="dot">•</span> Iqamah <strong>{{ iq | prayerTime }}</strong>
+      }
+    </div>
+  </div>
+</div>

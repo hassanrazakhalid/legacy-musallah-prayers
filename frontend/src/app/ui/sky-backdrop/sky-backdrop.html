@@ -1,0 +1,15 @@
+<div class="sky"></div>
+<div class="stars" [style.opacity]="starOpacity()">
+  @for (s of stars; track $index) {
+    <span
+      class="star"
+      [style.left.%]="s.x"
+      [style.top.%]="s.y"
+      [style.width.px]="s.size"
+      [style.height.px]="s.size"
+      [style.animation-delay.s]="s.delay"
+      [style.animation-duration.s]="s.duration"
+    ></span>
+  }
+</div>
+<div class="vignette"></div>
