@@ -150,6 +150,17 @@ svg {
   color: var(--accent);
 }
 
+// Between adhan and iqamah: the timer and iqamah time take the accent colour, the adhan dims.
+.to-iqamah {
+  .timer,
+  .iqamah-time {
+    color: var(--accent);
+  }
+  .adhan-time {
+    opacity: 0.6;
+  }
+}
+
 .name {
   font-family: 'Fraunces', serif;
   font-size: clamp(1.375rem, 5cqw, 3.25rem);

@@ -38,7 +38,9 @@ export class App {
     }
 
     effect(() => {
-      document.title = `${this.store.next().label} in ${this.store.countdown()} · Prayer Times`;
+      const { prayer, kind } = this.store.countdownTarget();
+      const what = kind === 'iqamah' ? `${prayer.label} iqamah` : prayer.label;
+      document.title = `${what} in ${this.store.countdown()} · Prayer Times`;
     });
   }
 }

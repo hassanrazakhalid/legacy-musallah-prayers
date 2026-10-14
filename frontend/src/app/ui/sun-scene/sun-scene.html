@@ -99,16 +99,19 @@
     </g>
   </svg>
 
-  <div class="countdown" aria-live="polite">
-    <div class="eyebrow">Next prayer · <span class="phase">{{ store.sky().phase }}</span></div>
+  @let target = store.countdownTarget();
+  <div class="countdown" [class.to-iqamah]="target.kind === 'iqamah'" aria-live="polite">
+    <div class="eyebrow">
+      {{ target.kind === 'iqamah' ? 'Iqamah in' : 'Adhan in' }} · <span class="phase">{{ store.sky().phase }}</span>
+    </div>
     <div class="name">
-      {{ store.next().label }} <span class="arabic">{{ store.next().arabic }}</span>
+      {{ target.prayer.label }} <span class="arabic">{{ target.prayer.arabic }}</span>
     </div>
     <div class="timer">{{ store.countdown() }}</div>
     <div class="meta">
-      Adhan <strong>{{ store.next().adhan | prayerTime }}</strong>
-      @if (store.next().iqamah; as iq) {
-        <span class="dot">•</span> Iqamah <strong>{{ iq | prayerTime }}</strong>
+      <span class="adhan-time">Adhan <strong>{{ target.prayer.adhan | prayerTime }}</strong></span>
+      @if (target.prayer.iqamah; as iq) {
+        <span class="dot">•</span> <span class="iqamah-time">Iqamah <strong>{{ iq | prayerTime }}</strong></span>
       }
     </div>
   </div>

@@ -129,8 +129,20 @@ export class PrayerStore {
     return last.key === 'sunrise' ? null : last.key;
   });
 
+  /**
+   * What the countdown is counting to: between a prayer's adhan and its iqamah it counts
+   * down to that iqamah; otherwise to the next prayer's adhan.
+   */
+  readonly countdownTarget = computed<{ prayer: PrayerRow; kind: 'adhan' | 'iqamah'; at: Date }>(() => {
+    const now = this.now().getTime();
+    const awaiting = this.prayers().find((p) => p.iqamah && p.adhan.getTime() <= now && now < p.iqamah.getTime());
+    if (awaiting?.iqamah) return { prayer: awaiting, kind: 'iqamah', at: awaiting.iqamah };
+    const next = this.next();
+    return { prayer: next, kind: 'adhan', at: next.adhan };
+  });
+
   readonly countdown = computed(() => {
-    const ms = Math.max(0, this.next().adhan.getTime() - this.now().getTime());
+    const ms = Math.max(0, this.countdownTarget().at.getTime() - this.now().getTime());
     const s = Math.floor(ms / 1000);
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
