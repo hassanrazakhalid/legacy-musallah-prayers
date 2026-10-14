@@ -58,6 +58,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/legacy-musallah-prayers/",
               "budgets": [
                 {
                   "type": "initial",

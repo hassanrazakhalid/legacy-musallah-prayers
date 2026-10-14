@@ -1,0 +1,20 @@
+{
+  "masjid": {
+    "name": "ICSC",
+    "city": "Calgary",
+    "region": "AB",
+    "timeZone": "America/Edmonton",
+    "latitude": 51.0447,
+    "longitude": -114.0719
+  },
+  "iqamahSchedules": ["ICSC_Iqamah_Schedule_fullyear2026_2027.csv"],
+  "jumuahFile": "jumuah.csv",
+  "adhanMinutesBeforeIqamah": {
+    "fajr": 20,
+    "dhuhr": 15,
+    "asr": 15,
+    "maghrib": 10,
+    "isha": 15,
+    "jumuah": 30
+  }
+}
