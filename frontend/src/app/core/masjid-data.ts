@@ -52,7 +52,7 @@ export type DataSource = 'remote' | 'bundled';
 
 const DEFAULT_CONFIG: MasjidConfig = {
   masjid: {
-    name: 'ICSC',
+    name: 'Legacy Musallah',
     city: 'Calgary',
     region: 'AB',
     timeZone: 'America/Edmonton',

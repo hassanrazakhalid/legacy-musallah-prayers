@@ -19,16 +19,15 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
           @for (j of store.jumuah(); track $index) {
             <li class="slot" [class.next]="store.isFriday() && j.state === 'next'" [class.done]="store.isFriday() && j.state === 'done'">
               <div class="name">{{ j.name }}</div>
-              <div class="iqamah">{{ j.iqamah | prayerTime }}</div>
-              <div class="sub">Iqamah</div>
-              <dl class="details">
+              <dl class="times">
                 @if (j.khutbah) {
                   <dt>Khutbah</dt>
                   <dd>{{ j.khutbah | prayerTime }}</dd>
                 }
-                <dt>Adhan</dt>
-                <dd>{{ j.adhan | prayerTime }}</dd>
+                <dt>Iqamah</dt>
+                <dd class="iqamah">{{ j.iqamah | prayerTime }}</dd>
               </dl>
+              <div class="adhan">Adhan {{ j.adhan | prayerTime }}</div>
               @if (showLocations() && j.location) {
                 <div class="location">{{ j.location }}</div>
               }
@@ -61,7 +60,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       margin: 0;
       padding: 0;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
       gap: 0.625rem;
     }
     .slot {
@@ -83,33 +82,31 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       text-transform: uppercase;
       opacity: 0.7;
     }
-    .iqamah {
-      font-size: 1.375rem;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      margin: 0.125rem 0;
+    .times {
+      margin: 0.375rem 0 0;
     }
-    .sub {
-      font-size: 0.6875rem;
+    .times dt {
+      font-size: 0.75rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       opacity: 0.6;
-      margin-top: -0.125rem;
+      margin-top: 0.375rem;
     }
-    .details {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 0.125rem 0.5rem;
-      margin: 0.5rem 0 0;
-      font-size: 0.8125rem;
-    }
-    .details dt {
-      opacity: 0.65;
-    }
-    .details dd {
+    .times dd {
       margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
       font-variant-numeric: tabular-nums;
-      text-align: right;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+    .times dd.iqamah {
+      font-weight: 700;
+    }
+    .adhan {
+      margin-top: 0.5rem;
+      font-size: 0.8125rem;
+      opacity: 0.65;
     }
     .location {
       margin-top: 0.25rem;

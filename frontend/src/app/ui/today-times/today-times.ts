@@ -91,7 +91,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .row {
       display: grid;
-      grid-template-columns: 1.3fr 1fr 1fr 1.1fr;
+      grid-template-columns: 1.35fr 1.1fr 1.1fr 0.95fr;
       gap: 0.5rem;
       align-items: center;
       padding: 0.875rem 1rem;
@@ -118,44 +118,30 @@ import { zonedMidnight } from '../../core/zoned-time';
       align-items: baseline;
       gap: 0.25rem 0.625rem;
     }
-    @media (max-width: 480px) {
-      .row {
-        padding: 0.75rem 0.625rem;
-        gap: 0.375rem;
-      }
-      .time {
-        font-size: 0.8125rem;
-      }
-      .label {
-        font-size: 0.9375rem;
-      }
-      .arabic {
-        display: none;
-      }
-    }
     .label {
       font-weight: 600;
-      font-size: 1.0625rem;
+      font-size: 1.375rem;
     }
     .arabic {
       font-family: 'Amiri', serif;
-      font-size: 1rem;
+      font-size: 1.25rem;
       opacity: 0.7;
     }
     .time {
       font-variant-numeric: tabular-nums;
       text-align: right;
-      font-size: 1rem;
+      font-size: 1.5rem;
+      white-space: nowrap;
     }
     .iqamah {
-      font-weight: 600;
+      font-weight: 700;
     }
     .na {
       opacity: 0.4;
     }
     .badge {
       align-self: center;
-      font-size: 0.625rem;
+      font-size: 0.75rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       padding: 0.1875rem 0.4375rem;
@@ -171,7 +157,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     .cols {
       padding-top: 0;
       padding-bottom: 0.5rem;
-      font-size: 0.6875rem;
+      font-size: 0.8125rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       opacity: 0.65;
@@ -180,7 +166,7 @@ import { zonedMidnight } from '../../core/zoned-time';
       margin-bottom: 0.375rem;
     }
     .cols .time {
-      font-size: 0.6875rem;
+      font-size: 0.8125rem;
     }
     .week-head small {
       display: block;
@@ -189,7 +175,9 @@ import { zonedMidnight } from '../../core/zoned-time';
       opacity: 0.8;
       margin-top: 0.125rem;
     }
+    /* Next week stays deliberately smaller than this week's times. */
     .week {
+      font-size: 1.0625rem;
       opacity: 0.75;
     }
     .week.changed {
@@ -198,7 +186,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .delta {
       display: block;
-      font-size: 0.6875rem;
+      font-size: 0.75rem;
       opacity: 0.85;
     }
     :host-context(html.tv) .row:not(.cols) {
@@ -226,6 +214,31 @@ import { zonedMidnight } from '../../core/zoned-time';
       margin: 0.875rem 0.25rem 0;
       font-size: 0.75rem;
       opacity: 0.6;
+    }
+    /* Phones: placed last so it overrides the sizes above. */
+    @media (max-width: 480px) {
+      .row {
+        grid-template-columns: 1.1fr 1fr 1fr 0.85fr;
+        padding: 0.75rem 0.5rem;
+        gap: 0.25rem;
+      }
+      .time {
+        font-size: 0.9375rem;
+      }
+      .week {
+        font-size: 0.75rem;
+      }
+      .label {
+        font-size: 1.0625rem;
+      }
+      .arabic {
+        display: none;
+      }
+      .cols,
+      .cols .time {
+        font-size: 0.6875rem;
+        letter-spacing: 0.08em;
+      }
     }
   `,
 })
