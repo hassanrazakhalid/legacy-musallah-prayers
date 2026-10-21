@@ -11,7 +11,6 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
     <section class="card glass">
       <header class="card-head">
         <h2>Jumu'ah <span class="arabic">الجمعة</span></h2>
-        <span class="hint">{{ store.isFriday() ? 'Today' : store.jumuahLabel() }}</span>
       </header>
 
       @if (store.jumuah().length) {
@@ -27,7 +26,6 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
                 <dt>Iqamah</dt>
                 <dd class="iqamah">{{ j.iqamah | prayerTime }}</dd>
               </dl>
-              <div class="adhan">Adhan {{ j.adhan | prayerTime }}</div>
               @if (showLocations() && j.location) {
                 <div class="location">{{ j.location }}</div>
               }
@@ -48,6 +46,12 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
     }
     .card {
       height: 100%;
+    }
+    .card-head {
+      justify-content: center;
+    }
+    .card-head h2 {
+      font-size: 1.75rem;
     }
     .arabic {
       font-family: 'Amiri', serif;
@@ -102,11 +106,6 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
     }
     .times dd.iqamah {
       font-weight: 700;
-    }
-    .adhan {
-      margin-top: 0.5rem;
-      font-size: 0.8125rem;
-      opacity: 0.65;
     }
     .location {
       margin-top: 0.25rem;

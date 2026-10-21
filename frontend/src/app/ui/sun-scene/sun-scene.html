@@ -28,19 +28,21 @@
       </clipPath>
     </defs>
 
-    <!-- Path shared by sun (day) and moon (night); its prayer markers are drawn above the skyline -->
+    <!-- The prayer day, Fajr (left) to Isha (right); its markers are drawn above the skyline -->
     <path class="arc" [attr.d]="arcPath" />
     @if (travelled(); as d) {
       <path class="arc travelled" [attr.d]="d" />
     }
-    <line class="hand" [attr.x1]="cx" [attr.y1]="horizon" [attr.x2]="hand().x" [attr.y2]="hand().y" />
+    <line class="hand" [attr.x1]="cx" [attr.y1]="horizon" [attr.x2]="point().x" [attr.y2]="point().y" />
 
-    <!-- Sun & moon on opposite ends of the wheel, clipped at the horizon -->
+    <!-- The marker: sun in daylight, moon otherwise (cross-fading), clipped at the horizon -->
     <g clip-path="url(#aboveHorizon)">
-      <circle [attr.cx]="sun().x" [attr.cy]="sun().y" [attr.r]="sun().glow" fill="url(#sunGlow)" />
-      <circle class="sun" [attr.cx]="sun().x" [attr.cy]="sun().y" [attr.r]="sun().r" fill="url(#sunCore)" />
+      <g [attr.opacity]="sun().opacity">
+        <circle [attr.cx]="sun().x" [attr.cy]="sun().y" [attr.r]="sun().glow" fill="url(#sunGlow)" />
+        <circle class="sun" [attr.cx]="sun().x" [attr.cy]="sun().y" [attr.r]="sun().r" fill="url(#sunCore)" />
+      </g>
 
-      <g [attr.transform]="'translate(' + moon().x + ' ' + moon().y + ')'">
+      <g [attr.transform]="'translate(' + moon().x + ' ' + moon().y + ')'" [attr.opacity]="moon().opacity">
         <title>{{ moon().phaseName }}</title>
         <circle [attr.r]="moon().glow" fill="url(#moonGlow)" />
         <circle class="earthshine" [attr.r]="moonR" />
@@ -54,7 +56,7 @@
     <g class="ground" transform="translate(0 -30)">
       <path class="far" d="M-1500 436 C-600 420 -200 430 0 438 C120 420 220 428 330 434 C430 442 520 424 620 430 C760 438 880 420 1000 432 C1300 424 2000 436 2500 430 V470 H-1500Z" />
 
-      <g class="mosque" transform="translate(150 0)">
+      <g class="mosque" transform="translate(-190 0)">
         <rect x="590" y="322" width="14" height="130" />
         <path d="M586 324 L597 286 L608 324Z" />
         <rect x="585" y="352" width="24" height="5" rx="1" />
@@ -73,7 +75,7 @@
         <circle cx="690" cy="302" r="4" />
       </g>
 
-      <g class="windows" transform="translate(150 0)" [class.lit]="isNight()">
+      <g class="windows" transform="translate(-190 0)" [class.lit]="isNight()">
         <rect x="660" y="410" width="10" height="20" rx="5" />
         <rect x="685" y="410" width="10" height="20" rx="5" />
         <rect x="710" y="410" width="10" height="20" rx="5" />
@@ -85,18 +87,17 @@
     </g>
 
     @for (m of markers(); track m.key) {
-      <g class="marker" [class.active]="m.active" [attr.transform]="'translate(' + m.x + ' ' + m.y + ')'">
+      <g class="marker" [class.active]="m.active" [class.done]="m.done" [attr.transform]="'translate(' + m.x + ' ' + m.y + ')'">
         <circle r="6" />
-        <text y="-16" text-anchor="middle" [class.covered]="m.covered">{{ m.label }} · {{ m.time | prayerTime }}</text>
+        <text
+          [attr.x]="m.lx - m.x"
+          [attr.y]="m.ly - m.y + 5"
+          [attr.text-anchor]="m.anchor"
+          [class.covered]="m.covered"
+        >{{ m.label }} · {{ m.time | prayerTime }}</text>
       </g>
     }
 
-    <g class="horizon-labels">
-      <text [attr.x]="east" y="452" text-anchor="middle">{{ store.arc().start.label }}</text>
-      <text class="time" [attr.x]="east" y="474" text-anchor="middle">{{ store.arc().start.time | prayerTime }}</text>
-      <text [attr.x]="west" y="452" text-anchor="middle">{{ store.arc().end.label }}</text>
-      <text class="time" [attr.x]="west" y="474" text-anchor="middle">{{ store.arc().end.time | prayerTime }}</text>
-    </g>
   </svg>
 
   @let target = store.countdownTarget();

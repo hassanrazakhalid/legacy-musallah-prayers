@@ -39,21 +39,6 @@ export interface JumuahRow {
   state: 'done' | 'next' | 'upcoming';
 }
 
-export interface ArcPoint {
-  key: PrayerKey;
-  label: string;
-  time: Date;
-}
-
-export interface SkyArc {
-  night: boolean;
-  /** East horizon: where the sun (day) or moon (night) rises. */
-  start: ArcPoint;
-  /** West horizon: where it sets. */
-  end: ArcPoint;
-  markers: ArcPoint[];
-}
-
 const META: Record<PrayerKey, { label: string; arabic: string }> = {
   fajr: { label: 'Fajr', arabic: 'الفجر' },
   sunrise: { label: 'Sunrise', arabic: 'الشروق' },
@@ -112,7 +97,7 @@ export class PrayerStore {
   /** Iqamah times change on Sundays, so "next week" is the schedule starting next Sunday. */
   readonly nextWeekYmd = computed(() => addDays(this.todayYmd(), 7 - weekday(this.todayYmd())));
   readonly nextWeekPrayers = computed(() => this.scheduleFor(this.nextWeekYmd()).rows);
-  readonly nextWeekLabel = computed(() => `from ${shortDate(this.nextWeekYmd())}`);
+  readonly nextWeekLabel = computed(() => shortDate(this.nextWeekYmd()));
 
   readonly next = computed<PrayerRow>(() => {
     const now = this.now().getTime();
@@ -149,40 +134,14 @@ export class PrayerStore {
   });
 
   /**
-   * What the sky arc currently represents: the sun's path (sunrise → maghrib, with
-   * Dhuhr and Asr on it) or the moon's path (maghrib → sunrise, with Isha and Fajr).
+   * The prayer day for the sky arc: today's six times in order, plus the Isha before
+   * and the Fajr after, so the marker can travel through the night between them.
    */
-  readonly arc = computed<SkyArc>(() => {
-    const now = this.now().getTime();
-    const sun = this.today();
-    const adhan = (rows: PrayerRow[], key: PrayerKey) => rows.find((r) => r.key === key)!.adhan;
-    if (now >= sun.sunrise.getTime() && now <= sun.maghrib.getTime()) {
-      const rows = this.prayers();
-      return {
-        night: false,
-        start: { key: 'sunrise', label: 'Sunrise', time: sun.sunrise },
-        end: { key: 'maghrib', label: 'Sunset', time: sun.maghrib },
-        markers: [
-          { key: 'dhuhr', label: META.dhuhr.label, time: adhan(rows, 'dhuhr') },
-          { key: 'asr', label: META.asr.label, time: adhan(rows, 'asr') },
-        ],
-      };
-    }
-    const afterSunset = now > sun.maghrib.getTime();
-    const [eveningSun, morningSun] = afterSunset ? [sun, this.tomorrow()] : [this.yesterday(), sun];
-    const [evening, morning] = afterSunset
-      ? [this.prayers(), this.tomorrowSchedule().rows]
-      : [this.yesterdaySchedule().rows, this.prayers()];
-    return {
-      night: true,
-      start: { key: 'maghrib', label: 'Sunset', time: eveningSun.maghrib },
-      end: { key: 'sunrise', label: 'Sunrise', time: morningSun.sunrise },
-      markers: [
-        { key: 'isha', label: META.isha.label, time: adhan(evening, 'isha') },
-        { key: 'fajr', label: META.fajr.label, time: adhan(morning, 'fajr') },
-      ],
-    };
-  });
+  readonly prayerCycle = computed(() => ({
+    today: this.prayers(),
+    prevIsha: this.yesterdaySchedule().rows.at(-1)!.adhan,
+    nextFajr: this.tomorrowSchedule().rows[0].adhan,
+  }));
 
   readonly sky = computed(() =>
     skyState(this.now(), this.location(), this.yesterday(), this.today(), this.tomorrow()),

@@ -17,7 +17,7 @@ import { zonedMidnight } from '../../core/zoned-time';
         <span>Prayer</span>
         <span class="time">Adhan</span>
         <span class="time">Iqamah</span>
-        <span class="time week-head">Next week<small>{{ store.nextWeekLabel() }}</small></span>
+        <span class="time week-head">{{ store.nextWeekLabel() }}</span>
       </div>
 
       <ul class="rows">
@@ -31,12 +31,14 @@ import { zonedMidnight } from '../../core/zoned-time';
           >
             <div class="name">
               <span class="label">{{ p.label }}</span>
-              <span class="arabic">{{ p.arabic }}</span>
-              @if (store.currentKey() === p.key) {
-                <span class="badge">Now</span>
-              } @else if (store.next() === p) {
-                <span class="badge soft">Next</span>
-              }
+              <span class="sub">
+                <span class="arabic">{{ p.arabic }}</span>
+                @if (store.currentKey() === p.key) {
+                  <span class="badge">Now</span>
+                } @else if (store.next() === p) {
+                  <span class="badge soft">Next</span>
+                }
+              </span>
             </div>
             <div class="time adhan">{{ p.adhan | prayerTime }}</div>
             <div class="time iqamah" [class.problem]="p.problem" [attr.title]="p.problem">
@@ -66,7 +68,7 @@ import { zonedMidnight } from '../../core/zoned-time';
       @if (!store.todaySchedule().published) {
         <p class="warning">Today isn't in the published schedule yet — showing calculated adhan times.</p>
       }
-      <p class="foot">Next week shows the iqamah schedule starting {{ store.nextWeekLabel().replace('from ', '') }}.</p>
+      <p class="foot">Last column: next week's schedule, starting {{ store.nextWeekLabel() }}.</p>
     </section>
   `,
   styles: `
@@ -77,6 +79,11 @@ import { zonedMidnight } from '../../core/zoned-time';
       height: 100%;
       display: flex;
       flex-direction: column;
+      /* Times scale with the card's width so they never collide on narrower laptops. */
+      container-type: inline-size;
+    }
+    .card-head h2 {
+      font-size: 1.75rem;
     }
     .rows {
       flex: 1;
@@ -91,8 +98,8 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .row {
       display: grid;
-      grid-template-columns: 1.35fr 1.1fr 1.1fr 0.95fr;
-      gap: 0.5rem;
+      grid-template-columns: 1.1fr 1fr 1fr 1fr;
+      gap: 1rem;
       align-items: center;
       padding: 0.875rem 1rem;
       border-radius: 0.875rem;
@@ -114,23 +121,29 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .name {
       display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      gap: 0.25rem 0.625rem;
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+    .sub {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     .label {
       font-weight: 600;
-      font-size: 1.375rem;
+      font-size: min(1.5rem, 4cqw);
+      line-height: 1.1;
     }
     .arabic {
       font-family: 'Amiri', serif;
-      font-size: 1.25rem;
+      font-size: 1.125rem;
       opacity: 0.7;
     }
+    /* Adhan, iqamah and next week share one large size: bigger than the prayer names. */
     .time {
       font-variant-numeric: tabular-nums;
       text-align: right;
-      font-size: 1.5rem;
+      font-size: min(1.875rem, 4.4cqw);
       white-space: nowrap;
     }
     .iqamah {
@@ -157,7 +170,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     .cols {
       padding-top: 0;
       padding-bottom: 0.5rem;
-      font-size: 0.8125rem;
+      font-size: 0.875rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       opacity: 0.65;
@@ -166,18 +179,9 @@ import { zonedMidnight } from '../../core/zoned-time';
       margin-bottom: 0.375rem;
     }
     .cols .time {
-      font-size: 0.8125rem;
+      font-size: 0.875rem;
     }
-    .week-head small {
-      display: block;
-      letter-spacing: 0.04em;
-      text-transform: none;
-      opacity: 0.8;
-      margin-top: 0.125rem;
-    }
-    /* Next week stays deliberately smaller than this week's times. */
     .week {
-      font-size: 1.0625rem;
       opacity: 0.75;
     }
     .week.changed {
@@ -186,7 +190,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .delta {
       display: block;
-      font-size: 0.75rem;
+      font-size: 0.875rem;
       opacity: 0.85;
     }
     :host-context(html.tv) .row:not(.cols) {
@@ -224,9 +228,6 @@ import { zonedMidnight } from '../../core/zoned-time';
       }
       .time {
         font-size: 0.9375rem;
-      }
-      .week {
-        font-size: 0.75rem;
       }
       .label {
         font-size: 1.0625rem;
