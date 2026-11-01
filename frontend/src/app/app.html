@@ -16,11 +16,35 @@
     <div class="greg">{{ store.gregorianDate() }}</div>
   </div>
 
-  <div class="location glass">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" fill="currentColor"/></svg>
-    {{ store.location().name }}, {{ store.location().region }}
+  <div class="top-right">
+    @if (!display.tv) {
+      <button
+        type="button"
+        class="sound glass"
+        [class.off]="!chime.enabled()"
+        (click)="chime.toggle()"
+        [attr.aria-pressed]="chime.enabled()"
+        [attr.title]="chime.enabled() ? 'Iqamah beep on (click to turn off)' : 'Iqamah beep off (click to turn on)'"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z" fill="currentColor" />
+          @if (!chime.enabled()) {
+            <path d="M4 3 21 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          }
+        </svg>
+        <span class="sr-only">Iqamah beep</span>
+      </button>
+    }
+    <div class="location glass">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" fill="currentColor"/></svg>
+      {{ store.location().name }}, {{ store.location().region }}
+    </div>
   </div>
 </header>
+
+@if (display.tv && chime.blocked()) {
+  <div class="sound-hint glass">Tap or press any key to enable the iqamah beep</div>
+}
 
 <main class="layout">
   <app-sun-scene class="scene-area" />

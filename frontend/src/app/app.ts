@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
 import { Clock } from './core/clock';
 import { Display } from './core/display';
+import { IqamahChime } from './core/iqamah-chime';
 import { PrayerStore } from './core/prayer-store';
 import { Jumuah } from './ui/jumuah/jumuah';
 import { SkyBackdrop } from './ui/sky-backdrop/sky-backdrop';
@@ -28,6 +29,7 @@ import { TodayTimes } from './ui/today-times/today-times';
 export class App {
   protected readonly store = inject(PrayerStore);
   protected readonly display = inject(Display);
+  protected readonly chime = inject(IqamahChime);
 
   constructor() {
     // `?at=19:05` opens the page previewing that time of day (handy for sharing designs).
