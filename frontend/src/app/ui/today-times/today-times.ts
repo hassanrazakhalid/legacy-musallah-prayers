@@ -17,7 +17,7 @@ import { zonedMidnight } from '../../core/zoned-time';
         <span>Prayer</span>
         <span class="time">Adhan</span>
         <span class="time">Iqamah</span>
-        <span class="time week-head">{{ store.nextWeekLabel() }}</span>
+        <span class="time week-head">{{ store.nextChangeLabel() }}</span>
       </div>
 
       <ul class="rows">
@@ -68,7 +68,7 @@ import { zonedMidnight } from '../../core/zoned-time';
       @if (!store.todaySchedule().published) {
         <p class="warning">Today isn't in the published schedule yet — showing calculated adhan times.</p>
       }
-      <p class="foot">Last column: next week's schedule, starting {{ store.nextWeekLabel() }}.</p>
+      <p class="foot">Last column: the next iqamah schedule change, on {{ store.nextChangeLabel() }}.</p>
     </section>
   `,
   styles: `
@@ -98,8 +98,8 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .row {
       display: grid;
-      grid-template-columns: 1.1fr 1fr 1fr 1fr;
-      gap: 1rem;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 0.75rem;
       align-items: center;
       padding: 0.875rem 1rem;
       border-radius: 0.875rem;
@@ -131,7 +131,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .label {
       font-weight: 600;
-      font-size: min(1.5rem, 4cqw);
+      font-size: min(1.875rem, 4.6cqw);
       line-height: 1.1;
     }
     .arabic {
@@ -143,7 +143,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     .time {
       font-variant-numeric: tabular-nums;
       text-align: right;
-      font-size: min(1.875rem, 4.4cqw);
+      font-size: min(2.625rem, 5.3cqw);
       white-space: nowrap;
     }
     .iqamah {
@@ -247,19 +247,25 @@ export class TodayTimes {
   protected readonly store = inject(PrayerStore);
   protected readonly abs = Math.abs;
 
-  /** Today's rows paired with next week's iqamah (adhan for sunrise) and the wall-clock change in minutes. */
+  /**
+   * Today's rows paired with the times at the next schedule change (iqamah; adhan for sunrise).
+   * Only prayers whose published iqamah changes get a delta; the rest just drift with the sun.
+   */
   protected readonly rows = computed(() => {
     const tz = this.store.location().timeZone;
     const todayMidnight = this.store.midnight().getTime();
-    const weekMidnight = zonedMidnight(this.store.nextWeekYmd(), tz).getTime();
-    const week = this.store.nextWeekPrayers();
+    const laterMidnight = zonedMidnight(this.store.nextChangeYmd(), tz).getTime();
+    const later = this.store.nextChangePrayers();
+    const changed = this.store.changedPrayers();
     return this.store.prayers().map((p, i) => {
       const now = p.iqamah ?? p.adhan;
-      const later = week[i].iqamah ?? week[i].adhan;
-      const delta = Math.round((later.getTime() - weekMidnight - (now.getTime() - todayMidnight)) / 60_000);
+      const then = later[i].iqamah ?? later[i].adhan;
+      const delta = changed.has(p.key)
+        ? Math.round((then.getTime() - laterMidnight - (now.getTime() - todayMidnight)) / 60_000)
+        : 0;
       const title =
-        delta === 0 ? 'No change next week' : `${Math.abs(delta)} min ${delta > 0 ? 'later' : 'earlier'} than today`;
-      return { p, week: later, delta, title };
+        delta === 0 ? 'No schedule change' : `${Math.abs(delta)} min ${delta > 0 ? 'later' : 'earlier'} than today`;
+      return { p, week: then, delta, title };
     });
   });
 }

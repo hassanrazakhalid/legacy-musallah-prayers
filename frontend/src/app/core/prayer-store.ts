@@ -92,10 +92,32 @@ export class PrayerStore {
 
   readonly prayers = computed(() => this.todaySchedule().rows);
 
-  /** Iqamah times change on Sundays, so "next week" is the schedule starting next Sunday. */
-  readonly nextWeekYmd = computed(() => addDays(this.todayYmd(), 7 - weekday(this.todayYmd())));
-  readonly nextWeekPrayers = computed(() => this.scheduleFor(this.nextWeekYmd()).rows);
-  readonly nextWeekLabel = computed(() => shortDate(this.nextWeekYmd()));
+  /**
+   * The next date the published iqamah schedule changes (usually a Sunday, but not every Sunday).
+   * Relative entries like "Fajr+ 10 min" count as unchanged even though their clock time drifts daily.
+   * Falls back to next Sunday when the schedule shows no change ahead.
+   */
+  readonly nextChangeYmd = computed(() => {
+    const today = this.todayYmd();
+    const schedule = this.data.schedule();
+    const todayRules = JSON.stringify(schedule.get(ymdKey(today))?.iqamah ?? null);
+    for (let i = 1; i <= 366; i++) {
+      const day = schedule.get(ymdKey(addDays(today, i)));
+      if (!day) break;
+      if (JSON.stringify(day.iqamah) !== todayRules) return addDays(today, i);
+    }
+    return addDays(today, 7 - weekday(today));
+  });
+  readonly nextChangePrayers = computed(() => this.scheduleFor(this.nextChangeYmd()).rows);
+  readonly nextChangeLabel = computed(() => shortDate(this.nextChangeYmd()));
+  /** Prayers whose published iqamah differs between today and the next change. */
+  readonly changedPrayers = computed(() => {
+    const schedule = this.data.schedule();
+    const today = schedule.get(ymdKey(this.todayYmd()))?.iqamah ?? {};
+    const later = schedule.get(ymdKey(this.nextChangeYmd()))?.iqamah ?? {};
+    const keys: SchedulePrayer[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    return new Set<PrayerKey>(keys.filter((k) => JSON.stringify(today[k] ?? null) !== JSON.stringify(later[k] ?? null)));
+  });
 
   readonly next = computed<PrayerRow>(() => {
     const now = this.now().getTime();
