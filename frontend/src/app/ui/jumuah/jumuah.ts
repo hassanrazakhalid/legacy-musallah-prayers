@@ -66,11 +66,11 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       padding: 0;
       display: grid;
       /* Up to five in a row; tiles narrow (and their times shrink) before wrapping. */
-      grid-template-columns: repeat(auto-fit, minmax(min(9rem, calc(20% - 0.4rem)), 1fr));
-      gap: 0.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(min(9rem, calc(20% - 0.3rem)), 1fr));
+      gap: 0.375rem;
     }
     .slot {
-      padding: 0.75rem 0.625rem;
+      padding: 0.75rem 0.25rem;
       border-radius: 0.875rem;
       text-align: center;
       background: rgba(255, 255, 255, 0.06);
@@ -84,7 +84,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       opacity: 0.5;
     }
     .name {
-      font-size: 0.9375rem;
+      font-size: 1.0625rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       opacity: 0.7;
@@ -93,7 +93,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       margin: 0.375rem 0 0;
     }
     .times dt {
-      font-size: 0.875rem;
+      font-size: 1rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       opacity: 0.6;
@@ -101,7 +101,8 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
     }
     .times dd {
       margin: 0;
-      font-size: min(2.25rem, 3.6cqw);
+      font-size: min(3rem, 4.1cqw);
+      letter-spacing: -0.01em;
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       line-height: 1.15;
