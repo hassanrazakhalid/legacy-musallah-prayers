@@ -4,19 +4,16 @@ The website loads these files every time it opens, and screens that stay open (l
 
 All times are local Calgary clock time (Alberta Time, UTC−6 year-round from Nov 1, 2026).
 
-## `ICSC_Iqamah_Schedule_fullyear2026_2027.csv`
+## Daily adhan and iqamah: iqamah.ca
 
-One row per day with that day's **iqamah** times.
+The daily times are loaded straight from iqamah.ca every time the site opens:
 
-| Column | Example | Notes |
-|---|---|---|
-| `Date` | `2026-10-04` | Required, `YYYY-MM-DD` |
-| `Fajr`, `Zuhr`, `Asr`, `Isha` | `6:50 AM` | `h:mm AM/PM` (24-hour `18:45` also works) |
-| `Maghrib` | `Sunset+ 10 min` | Minutes after the calculated sunset, or a fixed time like `7:25 PM` |
+- `salahschedule.js` (`SALAH_SCHEDULE`): **adhan** times for Fajr, Sunrise, Zuhr, Asr, Maghrib and Isha.
+- `schedule.js` (`IQAMAH_SCHEDULE`): **iqamah** times. Relative values like `Sunset+ 10 min`, `Fajr+ 10 min` or `Isha+ 30 min` are added to that prayer's adhan.
 
-Other columns (`Day`, `Day of the Week`) are ignored. For next year, add the new file name to `iqamahSchedules` in `prayer-config.json`; you can list several files.
+When iqamah.ca updates its files (for example, for next year), the site picks the changes up automatically. `iqamah.ca/` holds a snapshot of both files, used only when iqamah.ca can't be reached; refresh it by downloading the two files again.
 
-Dates missing from every schedule show calculated times with a "not in the published schedule" note.
+Dates missing from the schedule show calculated times with a "not in the published schedule" note.
 
 ## `jumuah.csv`
 
@@ -31,11 +28,11 @@ One row per Jumu'ah. Add or remove rows freely.
 
 ## `prayer-config.json`
 
-- `adhanMinutesBeforeIqamah`: adhan = iqamah minus these minutes, per prayer and for Jumu'ah. With `"maghrib": 10` and `Sunset+ 10 min`, the Maghrib adhan is at sunset.
-- `iqamahSchedules`: which schedule CSV files to load.
+- `adhanMinutesBeforeIqamah.jumuah`: Jumu'ah adhan = iqamah minus these minutes.
+- `salahScheduleUrl`, `iqamahScheduleUrl`: where the adhan and iqamah schedules are loaded from.
 - `jumuahFile`: which Jumu'ah file to load.
 - `masjid`: the name shown in the header, and the location and time zone used for sunrise, sunset and the sky.
 
 ## Safety check
 
-The site flags an iqamah in orange when it falls before that prayer can begin (Fajr, Zuhr, Asr) or when Fajr's is after sunrise. If you see orange times, check the CSV.
+The site flags an iqamah in orange when it falls before that prayer's adhan, or when Fajr's is after sunrise.
