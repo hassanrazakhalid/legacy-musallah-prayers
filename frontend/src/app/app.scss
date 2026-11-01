@@ -110,16 +110,17 @@
 }
 
 // ----- Layout -----
-// Desktop / portrait tablet: scene on top, schedule below in two columns.
+// Portrait tablet: scene on top, then today's salah, then Jumu'ah across the bottom.
 .layout {
   max-width: 75rem;
   margin: 0 auto;
   padding: 0.5rem 1.5rem 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
-    'scene scene'
-    'today jumuah';
+    'scene'
+    'today'
+    'jumuah';
   grid-template-rows: auto auto;
   gap: 1.25rem;
   align-items: start;
@@ -136,7 +137,7 @@
 }
 
 // Landscape laptop, desktop and TV: sky and today's salah side by side,
-// so the countdown and the full schedule share the first screen.
+// with the Jumu'ah table across the full width underneath.
 :host-context(html.wide) {
   .topbar,
   .layout {
@@ -151,7 +152,7 @@
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     grid-template-areas:
       'scene today'
-      'jumuah today';
+      'jumuah jumuah';
     grid-template-rows: auto;
     column-gap: 2rem;
     row-gap: 1.25rem;

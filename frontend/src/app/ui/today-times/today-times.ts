@@ -188,7 +188,23 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       padding-top: 0.45rem;
       padding-bottom: 0.45rem;
     }
-    :host-context(html.tv) .foot {
+    /* TV: the card is a size container, so the rows shrink to fit its height; warnings drop
+       (the orange flags in the table still mark problems). */
+    :host-context(html.tv) .card {
+      container-type: size;
+      overflow: hidden;
+    }
+    :host-context(html.tv) .row:not(.cols) .time {
+      font-size: min(3.25rem, 5.7cqw, 5.6cqh);
+    }
+    :host-context(html.tv) .label {
+      font-size: min(2.375rem, 5.2cqw, 4.4cqh);
+    }
+    :host-context(html.tv) .arabic {
+      font-size: min(1.375rem, 2.8cqh);
+    }
+    :host-context(html.tv) .foot,
+    :host-context(html.tv) .warning {
       display: none;
     }
     .problem {

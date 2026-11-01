@@ -2,31 +2,40 @@
   display: block;
 }
 
+// The sky animation on top, the countdown in its own block underneath (separated by a rule).
 .scene {
-  position: relative;
   width: 100%;
-  /* Never taller than the screen (minus the header), so laptops see the whole sky. */
-  max-width: min(68.75rem, calc((100svh - 8rem) * 1000 / 620));
   margin: 0 auto;
-  aspect-ratio: 1000 / 620;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   container-type: inline-size;
 }
 
 svg {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: min(100%, 40rem);
+  height: auto;
+  aspect-ratio: 1000 / 460;
   overflow: visible;
 }
 
-// Side-by-side layouts: fill the column, still bounded by the screen height.
-:host-context(html.wide) .scene {
-  max-width: min(100%, calc((100svh - 7rem) * 1000 / 620));
+// Side-by-side layouts: a smaller sky, so the countdown gets the room.
+:host-context(html.wide) svg {
+  width: min(80%, 36rem, calc((100svh - 30rem) * 1000 / 460));
 }
 
-// TV: the grid cell is a size container, so fit the scene to its height exactly.
-:host-context(html.tv) .scene {
-  max-width: min(100%, 100cqh * 1000 / 620);
+// TV: the grid cell is a size container; the sky takes about half its height.
+:host-context(html.tv) {
+  .scene {
+    height: 100%;
+    justify-content: center;
+  }
+  svg {
+    width: auto;
+    height: 44cqh;
+    max-width: 100%;
+  }
 }
 
 .arc {
@@ -61,7 +70,7 @@ svg {
   }
   text {
     fill: rgba(255, 255, 255, 0.85);
-    font-size: 15px;
+    font-size: 24px;
     font-weight: 500;
     letter-spacing: 0.02em;
     paint-order: stroke;
@@ -124,10 +133,10 @@ svg {
 
 
 .countdown {
-  position: absolute;
-  left: 50%;
-  top: 83%;
-  transform: translate(-50%, -50%);
+  width: min(100%, 36rem);
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
   text-align: center;
   color: #fff;
   text-shadow: 0 0.125rem 1.125rem rgba(0, 0, 0, 0.35);
@@ -135,7 +144,7 @@ svg {
 }
 
 .eyebrow {
-  font-size: clamp(0.625rem, 1.5cqw, 0.875rem);
+  font-size: clamp(0.75rem, 1.8cqw, 1rem);
   letter-spacing: 0.22em;
   text-transform: uppercase;
   opacity: 0.8;
@@ -158,7 +167,7 @@ svg {
 
 .name {
   font-family: 'Fraunces', serif;
-  font-size: clamp(1.375rem, 5cqw, 3.25rem);
+  font-size: clamp(1.5rem, 6cqw, 3.5rem);
   font-weight: 500;
   line-height: 1.15;
   margin-top: 0.2em;
@@ -172,7 +181,7 @@ svg {
 }
 
 .timer {
-  font-size: clamp(1.75rem, 7.5cqw, 5.125rem);
+  font-size: clamp(2.5rem, 11cqw, 6.5rem);
   font-weight: 200;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
@@ -181,7 +190,7 @@ svg {
 
 .meta {
   margin-top: 0.4em;
-  font-size: clamp(0.6875rem, 1.7cqw, 1rem);
+  font-size: clamp(0.875rem, 2.2cqw, 1.25rem);
   opacity: 0.9;
 
   strong {
@@ -193,21 +202,10 @@ svg {
   }
 }
 
-// On phones the arc is too small to hold the countdown, so it drops below the scene.
+// Phones: fixed sizes.
 @media (max-width: 600px) {
-  .scene {
-    aspect-ratio: auto;
-  }
-  svg {
-    height: auto;
-    aspect-ratio: 1000 / 620;
-    // Trim the empty ground band that holds the countdown on wider screens.
-    margin-bottom: -11%;
-  }
   .countdown {
-    position: static;
-    transform: none;
-    margin: 0.25rem 0 1.125rem;
+    margin-bottom: 1rem;
   }
   .eyebrow {
     font-size: 0.6875rem;
@@ -222,6 +220,6 @@ svg {
     font-size: 0.875rem;
   }
   .marker text {
-    font-size: 26px;
+    font-size: 30px;
   }
 }
