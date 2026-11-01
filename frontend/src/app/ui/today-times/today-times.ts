@@ -83,7 +83,7 @@ import { zonedMidnight } from '../../core/zoned-time';
       container-type: inline-size;
     }
     .card-head h2 {
-      font-size: 1.75rem;
+      font-size: 2.125rem;
     }
     .rows {
       flex: 1;
@@ -98,8 +98,8 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .row {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
-      gap: 0.75rem;
+      grid-template-columns: 0.9fr 1fr 1fr 1fr;
+      gap: 1rem;
       align-items: center;
       padding: 0.875rem 1rem;
       border-radius: 0.875rem;
@@ -131,19 +131,19 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .label {
       font-weight: 600;
-      font-size: min(1.875rem, 4.6cqw);
+      font-size: min(2.375rem, 5.2cqw);
       line-height: 1.1;
     }
     .arabic {
       font-family: 'Amiri', serif;
-      font-size: 1.125rem;
+      font-size: 1.375rem;
       opacity: 0.7;
     }
     /* Adhan, iqamah and next week share one large size: bigger than the prayer names. */
     .time {
       font-variant-numeric: tabular-nums;
       text-align: right;
-      font-size: min(2.625rem, 5.3cqw);
+      font-size: min(3.25rem, 5.7cqw);
       white-space: nowrap;
     }
     .iqamah {
@@ -170,7 +170,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     .cols {
       padding-top: 0;
       padding-bottom: 0.5rem;
-      font-size: 0.875rem;
+      font-size: 1rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       opacity: 0.65;
@@ -179,7 +179,7 @@ import { zonedMidnight } from '../../core/zoned-time';
       margin-bottom: 0.375rem;
     }
     .cols .time {
-      font-size: 0.875rem;
+      font-size: 1rem;
     }
     .week {
       opacity: 0.75;
@@ -190,7 +190,7 @@ import { zonedMidnight } from '../../core/zoned-time';
     }
     .delta {
       display: block;
-      font-size: 0.875rem;
+      font-size: 1rem;
       opacity: 0.85;
     }
     :host-context(html.tv) .row:not(.cols) {

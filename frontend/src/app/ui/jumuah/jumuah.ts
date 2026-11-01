@@ -46,6 +46,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
     }
     .card {
       height: 100%;
+      container-type: inline-size;
     }
     .card-head {
       justify-content: center;
@@ -64,7 +65,8 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       margin: 0;
       padding: 0;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+      /* Up to five in a row; tiles narrow (and their times shrink) before wrapping. */
+      grid-template-columns: repeat(auto-fit, minmax(min(9rem, calc(20% - 0.5rem)), 1fr));
       gap: 0.625rem;
     }
     .slot {
@@ -98,7 +100,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
     }
     .times dd {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: min(1.5rem, 3.3cqw);
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       line-height: 1.15;
