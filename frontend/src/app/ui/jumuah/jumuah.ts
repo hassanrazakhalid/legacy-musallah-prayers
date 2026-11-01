@@ -1,54 +1,40 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { JumuahRow, PrayerStore } from '../../core/prayer-store';
+import { PrayerStore } from '../../core/prayer-store';
 import { PrayerTimePipe } from '../../core/prayer-time.pipe';
 
-/**
- * Friday prayers as a two-row table: Khutbah times, then Iqamah times, one column per Jumu'ah.
- * On Fridays the next Jumu'ah is highlighted and past ones dim.
- */
+/** Friday prayers: one tile per Jumu'ah, any number of them (wraps to fit). */
 @Component({
   selector: 'app-jumuah',
   imports: [PrayerTimePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="card glass">
+      <header class="card-head">
+        <h2>Jumu'ah <span class="arabic">الجمعة</span></h2>
+      </header>
+
       @if (store.jumuah().length) {
-        <table>
-          <caption>
-            Jumu'ah <span class="arabic">الجمعة</span>
-            @if (!showLocations() && sharedLocation()) {
-              <span class="where">· {{ sharedLocation() }}</span>
-            }
-          </caption>
-          <thead class="sr-only">
-            <tr>
-              <td></td>
-              @for (j of store.jumuah(); track $index) {
-                <th scope="col">{{ j.name }}{{ showLocations() && j.location ? ', ' + j.location : '' }}</th>
+        <ol class="slots">
+          @for (j of store.jumuah(); track $index) {
+            <li class="slot" [class.next]="store.isFriday() && j.state === 'next'" [class.done]="store.isFriday() && j.state === 'done'">
+              <div class="name">{{ j.name }}</div>
+              <dl class="times">
+                @if (j.khutbah) {
+                  <dt>Khutbah</dt>
+                  <dd>{{ j.khutbah | prayerTime }}</dd>
+                }
+                <dt>Iqamah</dt>
+                <dd class="iqamah">{{ j.iqamah | prayerTime }}</dd>
+              </dl>
+              @if (showLocations() && j.location) {
+                <div class="location">{{ j.location }}</div>
               }
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">Khutbah</th>
-              @for (j of store.jumuah(); track $index) {
-                <td [class]="state(j)">
-                  @if (j.khutbah) {
-                    {{ j.khutbah | prayerTime }}
-                  } @else {
-                    <span class="na">—</span>
-                  }
-                </td>
-              }
-            </tr>
-            <tr class="iqamah">
-              <th scope="row">Iqamah</th>
-              @for (j of store.jumuah(); track $index) {
-                <td [class]="state(j)">{{ j.iqamah | prayerTime }}</td>
-              }
-            </tr>
-          </tbody>
-        </table>
+            </li>
+          }
+        </ol>
+        @if (!showLocations() && sharedLocation()) {
+          <p class="shared-location">All at {{ sharedLocation() }}</p>
+        }
       } @else {
         <p class="empty">Jumu'ah times will be announced.</p>
       }
@@ -59,114 +45,96 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       display: block;
     }
     .card {
+      height: 100%;
       container-type: inline-size;
-      padding-top: 0.75rem;
-      padding-bottom: 0.75rem;
     }
-    table {
-      width: 100%;
-      border-collapse: separate;
-      /* Columns are spaced apart; the two rows touch, so each Jumu'ah reads as one shaded block. */
-      border-spacing: 0.375rem 0;
-      table-layout: fixed;
+    .card-head {
+      justify-content: center;
     }
-    caption {
-      caption-side: top;
-      text-align: left;
-      padding: 0 0.375rem 0.25rem;
-      font-family: 'Fraunces', serif;
-      font-size: min(1.75rem, 3cqw);
-      font-weight: 600;
+    .card-head h2 {
+      font-size: 2.125rem;
     }
     .arabic {
       font-family: 'Amiri', serif;
       font-weight: 400;
       opacity: 0.7;
-      margin-left: 0.25rem;
+      margin-left: 0.375rem;
     }
-    .where {
-      font-family: inherit;
-      font-size: 0.6em;
-      font-weight: 400;
-      opacity: 0.7;
-      margin-left: 0.25rem;
+    .slots {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      /* Up to five in a row; tiles narrow (and their times shrink) before wrapping. */
+      grid-template-columns: repeat(auto-fit, minmax(min(9rem, calc(20% - 0.4rem)), 1fr));
+      gap: 0.5rem;
     }
-    th[scope='row'] {
-      width: 18%;
-      text-align: left;
-      padding-left: 0.375rem;
-      font-size: min(1.375rem, 2.4cqw);
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      opacity: 0.75;
-    }
-    td {
+    .slot {
+      padding: 0.75rem 0.625rem;
+      border-radius: 0.875rem;
       text-align: center;
-      padding: 0.375rem 0.25rem;
       background: rgba(255, 255, 255, 0.06);
-      font-size: min(2.5rem, 3.6cqw);
-      font-weight: 500;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
       transition: background 0.4s ease, opacity 0.4s ease;
     }
-    tbody tr:first-child td {
-      border-radius: 0.75rem 0.75rem 0 0;
+    .slot.next {
+      background: color-mix(in srgb, var(--accent) 22%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
     }
-    .iqamah td {
-      font-weight: 700;
-      border-radius: 0 0 0.75rem 0.75rem;
-    }
-    td.next {
-      background: color-mix(in srgb, var(--accent) 28%, transparent);
-    }
-    td.done {
+    .slot.done {
       opacity: 0.5;
     }
-    .na {
-      opacity: 0.4;
+    .name {
+      font-size: 0.9375rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.7;
     }
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
+    .times {
+      margin: 0.375rem 0 0;
+    }
+    .times dt {
+      font-size: 0.875rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-top: 0.375rem;
+    }
+    .times dd {
+      margin: 0;
+      font-size: min(2.25rem, 3.6cqw);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.15;
       white-space: nowrap;
+    }
+    .times dd.iqamah {
+      font-weight: 700;
+    }
+    .location {
+      margin-top: 0.25rem;
+      font-size: 0.8125rem;
+      opacity: 0.75;
+    }
+    .shared-location {
+      margin: 0.75rem 0.25rem 0;
+      font-size: 0.9375rem;
+      opacity: 0.7;
     }
     .empty {
       margin: 0;
       opacity: 0.7;
     }
-    /* TV: keep the table short so the schedule above has room. */
-    :host-context(html.tv) td {
-      font-size: min(2.25rem, 3cqw);
-      padding: 0.25rem;
-    }
-    :host-context(html.tv) caption {
-      font-size: min(1.5rem, 2.4cqw);
-    }
-        /* Phones: fixed sizes, the label column narrows. */
+    /* Phones: too narrow for five across, so wrap to fit at a readable size. */
     @media (max-width: 600px) {
-      table {
-        border-spacing: 0.1875rem 0;
+      .slots {
+        grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
       }
-      caption {
+      .times dd {
         font-size: 1.375rem;
       }
-      th[scope='row'] {
-        width: 3.5rem;
-        padding-left: 0.125rem;
-        font-size: 0.625rem;
-        letter-spacing: 0.02em;
-      }
-      /* "AM/PM" wraps under the time so the numbers can stay readable. */
-      td {
-        font-size: 1rem;
-        line-height: 1.1;
-        white-space: normal;
-        padding: 0.375rem 0.125rem;
+      .name,
+      .times dt {
+        font-size: 0.75rem;
       }
     }
   `,
@@ -178,8 +146,4 @@ export class Jumuah {
   private readonly locations = computed(() => new Set(this.store.jumuah().map((j) => j.location).filter(Boolean)));
   protected readonly showLocations = computed(() => this.locations().size > 1);
   protected readonly sharedLocation = computed(() => (this.locations().size === 1 ? [...this.locations()][0] : ''));
-
-  protected state(j: JumuahRow): string {
-    return this.store.isFriday() ? j.state : '';
-  }
 }

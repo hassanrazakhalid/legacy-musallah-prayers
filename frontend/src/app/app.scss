@@ -136,8 +136,8 @@
   grid-area: jumuah;
 }
 
-// Landscape laptop, desktop and TV: sky and today's salah side by side,
-// with the Jumu'ah table across the full width underneath.
+// Landscape laptop, desktop and TV: sky and Jumu'ah on the left, today's salah
+// down the full height on the right.
 :host-context(html.wide) {
   .topbar,
   .layout {
@@ -152,7 +152,7 @@
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     grid-template-areas:
       'scene today'
-      'jumuah jumuah';
+      'jumuah today';
     grid-template-rows: auto;
     column-gap: 2rem;
     row-gap: 1.25rem;
