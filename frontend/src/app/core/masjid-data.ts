@@ -1,4 +1,4 @@
-import { DestroyRef, inject, Injectable, signal } from '@angular/core';
+import { DestroyRef, inject, Injectable, isDevMode, signal } from '@angular/core';
 import { parseClock, parseCsv } from './csv';
 import { loadScheduleScript, RawSchedule } from './iqamah-ca';
 
@@ -6,9 +6,11 @@ import { loadScheduleScript, RawSchedule } from './iqamah-ca';
  * Where the published data files live. Point this at the raw GitHub folder, e.g.
  * 'https://raw.githubusercontent.com/<owner>/<repo>/main/frontend/public/data/'.
  * When empty, or when GitHub can't be reached, the copy bundled with the app (public/data/) is used.
+ * In development (ng serve) it's empty, so edits to public/data/ show on reload without pushing.
  */
-export const REMOTE_DATA_URL =
-  'https://raw.githubusercontent.com/hassanrazakhalid/legacy-musallah-prayers/main/frontend/public/data/';
+export const REMOTE_DATA_URL = isDevMode()
+  ? ''
+  : 'https://raw.githubusercontent.com/hassanrazakhalid/legacy-musallah-prayers/main/frontend/public/data/';
 
 const BUNDLED_DATA_URL = 'data/';
 /** Snapshot of iqamah.ca's salahschedule.js, used when iqamah.ca can't be reached. */
