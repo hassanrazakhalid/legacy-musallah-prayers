@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { PrayerStore } from '../../core/prayer-store';
 import { PrayerTimePipe } from '../../core/prayer-time.pipe';
-import { zonedMidnight } from '../../core/zoned-time';
 
 @Component({
   selector: 'app-today-times',
@@ -51,11 +50,8 @@ import { zonedMidnight } from '../../core/zoned-time';
                 <span class="na">—</span>
               }
             </div>
-            <div class="time week" [class.changed]="r.delta !== 0" [attr.title]="r.title">
+            <div class="time week" [class.changed]="r.changed" [attr.title]="r.changed ? 'Iqamah changes' : 'No schedule change'">
               {{ r.week | prayerTime }}
-              @if (r.delta !== 0) {
-                <small class="delta">{{ r.delta > 0 ? '+' : '−' }}{{ abs(r.delta) }} min</small>
-              }
             </div>
           </li>
         }
@@ -188,11 +184,6 @@ import { zonedMidnight } from '../../core/zoned-time';
       opacity: 1;
       color: var(--accent);
     }
-    .delta {
-      display: block;
-      font-size: 1rem;
-      opacity: 0.85;
-    }
     :host-context(html.tv) .row:not(.cols) {
       padding-top: 0.45rem;
       padding-bottom: 0.45rem;
@@ -245,27 +236,15 @@ import { zonedMidnight } from '../../core/zoned-time';
 })
 export class TodayTimes {
   protected readonly store = inject(PrayerStore);
-  protected readonly abs = Math.abs;
 
-  /**
-   * Today's rows paired with the times at the next schedule change (iqamah; adhan for sunrise).
-   * Only prayers whose published iqamah changes get a delta; the rest just drift with the sun.
-   */
+  /** Today's rows paired with the times at the next schedule change (iqamah; adhan for sunrise). */
   protected readonly rows = computed(() => {
-    const tz = this.store.location().timeZone;
-    const todayMidnight = this.store.midnight().getTime();
-    const laterMidnight = zonedMidnight(this.store.nextChangeYmd(), tz).getTime();
     const later = this.store.nextChangePrayers();
     const changed = this.store.changedPrayers();
-    return this.store.prayers().map((p, i) => {
-      const now = p.iqamah ?? p.adhan;
-      const then = later[i].iqamah ?? later[i].adhan;
-      const delta = changed.has(p.key)
-        ? Math.round((then.getTime() - laterMidnight - (now.getTime() - todayMidnight)) / 60_000)
-        : 0;
-      const title =
-        delta === 0 ? 'No schedule change' : `${Math.abs(delta)} min ${delta > 0 ? 'later' : 'earlier'} than today`;
-      return { p, week: then, delta, title };
-    });
+    return this.store.prayers().map((p, i) => ({
+      p,
+      week: later[i].iqamah ?? later[i].adhan,
+      changed: changed.has(p.key),
+    }));
   });
 }

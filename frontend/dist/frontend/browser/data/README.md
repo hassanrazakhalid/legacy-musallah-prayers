@@ -4,6 +4,8 @@ The website loads these files every time it opens, and screens that stay open (l
 
 All times are local Calgary clock time (Alberta Time, UTC−6 year-round from Nov 1, 2026).
 
+The time zone in `prayer-config.json` is `Etc/GMT+6`, which means a fixed UTC−6; the sign is inverted in these zone names. Don't change it to `America/Edmonton`. Browsers with older time-zone data still move that zone back an hour on Nov 1, which would put every countdown an hour late.
+
 ## Daily adhan and iqamah: iqamah.ca
 
 The daily times are loaded straight from iqamah.ca every time the site opens:
@@ -31,7 +33,7 @@ One row per Jumu'ah. Add or remove rows freely.
 - `adhanMinutesBeforeIqamah.jumuah`: Jumu'ah adhan = iqamah minus these minutes.
 - `salahScheduleUrl`, `iqamahScheduleUrl`: where the adhan and iqamah schedules are loaded from.
 - `jumuahFile`: which Jumu'ah file to load.
-- `masjid`: the name shown in the header, and the location and time zone used for sunrise, sunset and the sky.
+- `masjid`: the name shown in the header, and the location and time zone used for sunrise, sunset and the sky (keep `Etc/GMT+6`, see above).
 
 ## Safety check
 

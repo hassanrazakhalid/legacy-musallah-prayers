@@ -34,7 +34,8 @@ export const CALGARY: PrayerLocation = {
   region: 'AB',
   lat: 51.0447,
   lng: -114.0719,
-  timeZone: 'America/Edmonton',
+  // Alberta Time, UTC−6 year-round (see masjid-data.ts).
+  timeZone: 'Etc/GMT+6',
 };
 
 export const ISNA: CalcMethod = { name: 'ISNA', fajrAngle: 15, ishaAngle: 15, asrFactor: 1 };

@@ -64,7 +64,9 @@ const DEFAULT_CONFIG: MasjidConfig = {
     name: 'Legacy Musallah',
     city: 'Calgary',
     region: 'AB',
-    timeZone: 'America/Edmonton',
+    // Alberta Time: UTC−6 year-round since Nov 1, 2026. A fixed zone, because browsers with older
+    // time-zone data still move America/Edmonton back an hour, which would shift every time.
+    timeZone: 'Etc/GMT+6',
     latitude: 51.0447,
     longitude: -114.0719,
   },
