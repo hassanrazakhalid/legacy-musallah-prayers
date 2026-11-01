@@ -54,7 +54,9 @@
 
 @if (!display.tv) {
   <footer class="footer">
-    Adhan and iqamah from iqamah.ca · Jumu'ah adhan {{ store.offsets().jumuah }} min before iqamah · Mountain Time
+    Iqamah from the published {{ store.masjidName() }} schedule · Adhan
+    {{ store.offsets().fajr }}/{{ store.offsets().dhuhr }}/{{ store.offsets().asr }}/{{ store.offsets().maghrib }}/{{ store.offsets().isha }}
+    min before iqamah (Jumu'ah {{ store.offsets().jumuah }}) · Sunrise and sunset from iqamah.ca · Mountain Time
     @if (store.dataSource() === 'bundled') {
       · bundled copy
     }

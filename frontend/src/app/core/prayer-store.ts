@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Clock } from './clock';
-import { MasjidData, SchedulePrayer } from './masjid-data';
+import { IqamahDay, MasjidData } from './masjid-data';
 import { computeDay, DayTimes, ISNA, PrayerLocation } from './prayer-calc';
 import { skyState } from './sky-model';
 import { addDays, daysInMonth, sameYmd, Ymd, ymdKey, zonedDateTime, zonedMidnight, zonedYmd } from './zoned-time';
@@ -52,6 +52,8 @@ const KEYS: PrayerKey[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha']
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const minutes = (n: number) => n * 60_000;
+/** Slack for differences between the masjid's calculation method and ours. */
+const WINDOW_TOLERANCE = minutes(5);
 const weekday = ({ y, m, d }: Ymd) => new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 
 function shortDate({ y, m, d }: Ymd): string {
@@ -85,7 +87,7 @@ export class PrayerStore {
   private readonly yesterday = computed(() => this.sunTimes(addDays(this.todayYmd(), -1)));
   private readonly tomorrow = computed(() => this.sunTimes(addDays(this.todayYmd(), 1)));
 
-  /** Masjid schedule: adhan and iqamah from iqamah.ca's published files. */
+  /** Masjid schedule: iqamah from the published file, adhan = iqamah − configured minutes. */
   readonly todaySchedule = computed(() => this.scheduleFor(this.todayYmd()));
   private readonly yesterdaySchedule = computed(() => this.scheduleFor(addDays(this.todayYmd(), -1)));
   private readonly tomorrowSchedule = computed(() => this.scheduleFor(addDays(this.todayYmd(), 1)));
@@ -94,17 +96,17 @@ export class PrayerStore {
 
   /**
    * The next date the published iqamah schedule changes (usually a Sunday, but not every Sunday).
-   * Relative entries like "Fajr+ 10 min" count as unchanged even though their clock time drifts daily.
+   * "Sunset+ 10 min" counts as unchanged even though its clock time drifts daily.
    * Falls back to next Sunday when the schedule shows no change ahead.
    */
   readonly nextChangeYmd = computed(() => {
     const today = this.todayYmd();
     const schedule = this.data.schedule();
-    const todayRules = JSON.stringify(schedule.get(ymdKey(today))?.iqamah ?? null);
+    const todayRules = JSON.stringify(schedule.get(ymdKey(today)) ?? null);
     for (let i = 1; i <= 366; i++) {
       const day = schedule.get(ymdKey(addDays(today, i)));
       if (!day) break;
-      if (JSON.stringify(day.iqamah) !== todayRules) return addDays(today, i);
+      if (JSON.stringify(day) !== todayRules) return addDays(today, i);
     }
     return addDays(today, 7 - weekday(today));
   });
@@ -113,9 +115,9 @@ export class PrayerStore {
   /** Prayers whose published iqamah differs between today and the next change. */
   readonly changedPrayers = computed(() => {
     const schedule = this.data.schedule();
-    const today = schedule.get(ymdKey(this.todayYmd()))?.iqamah ?? {};
-    const later = schedule.get(ymdKey(this.nextChangeYmd()))?.iqamah ?? {};
-    const keys: SchedulePrayer[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    const today: Partial<IqamahDay> = schedule.get(ymdKey(this.todayYmd())) ?? {};
+    const later: Partial<IqamahDay> = schedule.get(ymdKey(this.nextChangeYmd())) ?? {};
+    const keys: (keyof IqamahDay)[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
     return new Set<PrayerKey>(keys.filter((k) => JSON.stringify(today[k] ?? null) !== JSON.stringify(later[k] ?? null)));
   });
 
@@ -252,11 +254,24 @@ export class PrayerStore {
     return computeDay(ymd, this.location(), this.method());
   }
 
+  /**
+   * Sunrise and sunset for a date: iqamah.ca's published times when it has the date, otherwise
+   * calculated. Sunset is the Maghrib adhan.
+   */
+  private publishedSun(ymd: Ymd, calc: DayTimes): { sunrise: Date; sunset: Date } {
+    const day = this.data.sun().get(ymdKey(ymd));
+    if (!day) return { sunrise: calc.sunrise, sunset: calc.maghrib };
+    const tz = this.location().timeZone;
+    return { sunrise: zonedDateTime(ymd, day.sunrise, tz), sunset: zonedDateTime(ymd, day.sunset, tz) };
+  }
+
   /** Prayer rows for a date from the published schedule, falling back to calculated adhan times. */
   scheduleFor(ymd: Ymd): DaySchedule {
+    const calc = this.sunTimes(ymd);
+    const { sunrise, sunset } = this.publishedSun(ymd, calc);
     const day = this.data.schedule().get(ymdKey(ymd));
     if (!day) {
-      const sun = this.sunTimes(ymd);
+      const sun: DayTimes = { ...calc, sunrise, maghrib: sunset };
       return {
         ymd,
         published: false,
@@ -264,31 +279,48 @@ export class PrayerStore {
       };
     }
     const tz = this.location().timeZone;
+    const offsets = this.offsets();
     const at = (mins: number) => zonedDateTime(ymd, mins, tz);
-    const adhan = (key: PrayerKey) => at(day.adhan[key]);
-    const iqamahOf = (key: SchedulePrayer): Date | null => {
-      const iq = day.iqamah[key];
-      if (!iq) return null;
-      return 'at' in iq ? at(iq.at) : new Date(adhan(key).getTime() + minutes(iq.afterAdhan));
+    const iqamah: Record<Exclude<PrayerKey, 'sunrise'>, Date> = {
+      fajr: at(day.fajr),
+      dhuhr: at(day.dhuhr),
+      asr: at(day.asr),
+      maghrib: 'afterSunset' in day.maghrib ? new Date(sunset.getTime() + minutes(day.maghrib.afterSunset)) : at(day.maghrib.at),
+      isha: at(day.isha),
     };
     const clock = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz });
-    const problem = (key: SchedulePrayer, iqamah: Date | null): string | undefined => {
-      if (!iqamah) return undefined;
-      const label = META[key].label;
-      if (iqamah < adhan(key)) return `${label} iqamah ${clock.format(iqamah)} is before the adhan (${clock.format(adhan(key))})`;
-      if (key === 'fajr' && iqamah > adhan('sunrise')) {
-        return `Fajr iqamah ${clock.format(iqamah)} is after sunrise (${clock.format(adhan('sunrise'))})`;
+    // Earliest moment each prayer can begin. Fajr uses 18° (the earliest common convention);
+    // Isha isn't checked because high-latitude masjids legitimately use different Isha rules.
+    const earliest: Partial<Record<PrayerKey, Date>> = {
+      fajr: computeDay(ymd, this.location(), { ...this.method(), fajrAngle: 18 }).fajr,
+      dhuhr: calc.dhuhr,
+      asr: calc.asr,
+    };
+    const problem = (key: Exclude<PrayerKey, 'sunrise'>): string | undefined => {
+      const t = iqamah[key].getTime();
+      const begins = earliest[key];
+      if (begins && t < begins.getTime() - WINDOW_TOLERANCE) {
+        return `${META[key].label} iqamah ${clock.format(iqamah[key])} is before ${META[key].label} begins (${clock.format(begins)})`;
+      }
+      if (key === 'fajr' && t > sunrise.getTime()) {
+        return `Fajr iqamah ${clock.format(iqamah.fajr)} is after sunrise (${clock.format(sunrise)})`;
       }
       return undefined;
     };
     return {
       ymd,
       published: true,
-      rows: KEYS.map((key) => {
-        if (key === 'sunrise') return { key, ...META[key], adhan: adhan(key), iqamah: null };
-        const iqamah = iqamahOf(key);
-        return { key, ...META[key], adhan: adhan(key), iqamah, problem: problem(key, iqamah) };
-      }),
+      rows: KEYS.map((key) =>
+        key === 'sunrise'
+          ? { key, ...META[key], adhan: sunrise, iqamah: null }
+          : {
+              key,
+              ...META[key],
+              iqamah: iqamah[key],
+              adhan: new Date(iqamah[key].getTime() - minutes(offsets[key])),
+              problem: problem(key),
+            },
+      ),
     };
   }
 }

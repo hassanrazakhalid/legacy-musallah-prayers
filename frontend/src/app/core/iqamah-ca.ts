@@ -1,40 +1,28 @@
-/** Raw day records from iqamah.ca's data scripts, keyed by ISO date: { fajr: "6:57 AM", ... }. */
+/** Raw day records from an iqamah.ca data script, keyed by ISO date: { sunrise: "8:27 AM", ... }. */
 export type RawSchedule = Record<string, Record<string, string>>;
-
-export interface IqamahCaFiles {
-  /** SALAH_SCHEDULE — adhan times (fajr, sunrise, zuhr, asr, maghrib, isha). */
-  salah: RawSchedule | null;
-  /** IQAMAH_SCHEDULE — iqamah times; may be relative, e.g. "Sunset+ 10 min", "Isha+ 30 min". */
-  iqamah: RawSchedule | null;
-}
 
 const LOAD_TIMEOUT_MS = 10_000;
 
 /**
- * Loads iqamah.ca's schedule scripts (`const SALAH_SCHEDULE = {...}` / `const IQAMAH_SCHEDULE = {...}`).
- * The site sends no CORS headers, so the files can't be fetched; instead they run as scripts in a
- * sandboxed iframe (opaque origin, no access to this page) that posts the two objects back.
- * A fresh iframe each time lets a refresh re-run the `const` declarations.
+ * Loads an iqamah.ca data script (e.g. salahschedule.js: `const SALAH_SCHEDULE = {...}`) and returns
+ * the object it declares. The site sends no CORS headers, so the file can't be fetched; instead it
+ * runs as a script in a sandboxed iframe (opaque origin, no access to this page) that posts the
+ * object back. A fresh iframe each time lets a refresh re-run the `const` declaration.
  */
-export function loadIqamahCa(salahUrl: string, iqamahUrl: string): Promise<IqamahCaFiles> {
-  const bust = (url: string) => {
-    const u = new URL(url, document.baseURI);
-    u.searchParams.set('v', String(Date.now()));
-    return u.href;
-  };
+export function loadScheduleScript(url: string, globalName: string): Promise<RawSchedule | null> {
+  const src = new URL(url, document.baseURI);
+  src.searchParams.set('v', String(Date.now()));
   const tag = `iqamah-ca-${Math.random().toString(36).slice(2)}`;
   const iframe = document.createElement('iframe');
   iframe.setAttribute('sandbox', 'allow-scripts');
   iframe.setAttribute('aria-hidden', 'true');
   iframe.style.display = 'none';
   iframe.srcdoc =
-    `<script src="${bust(salahUrl)}"></script>` +
-    `<script src="${bust(iqamahUrl)}"></script>` +
+    `<script src="${src.href}"></script>` +
     `<script>parent.postMessage({ tag: ${JSON.stringify(tag)},` +
-    ` salah: typeof SALAH_SCHEDULE === 'object' ? SALAH_SCHEDULE : null,` +
-    ` iqamah: typeof IQAMAH_SCHEDULE === 'object' ? IQAMAH_SCHEDULE : null }, '*');</script>`;
+    ` data: typeof ${globalName} === 'object' ? ${globalName} : null }, '*');</script>`;
 
-  return new Promise<IqamahCaFiles>((resolve, reject) => {
+  return new Promise<RawSchedule | null>((resolve, reject) => {
     const done = () => {
       clearTimeout(timer);
       window.removeEventListener('message', onMessage);
@@ -43,11 +31,11 @@ export function loadIqamahCa(salahUrl: string, iqamahUrl: string): Promise<Iqama
     const onMessage = (e: MessageEvent) => {
       if (e.source !== iframe.contentWindow || e.data?.tag !== tag) return;
       done();
-      resolve({ salah: asSchedule(e.data.salah), iqamah: asSchedule(e.data.iqamah) });
+      resolve(asSchedule(e.data.data));
     };
     const timer = setTimeout(() => {
       done();
-      reject(new Error(`${salahUrl}: timed out`));
+      reject(new Error(`${url}: timed out`));
     }, LOAD_TIMEOUT_MS);
     window.addEventListener('message', onMessage);
     document.body.appendChild(iframe);

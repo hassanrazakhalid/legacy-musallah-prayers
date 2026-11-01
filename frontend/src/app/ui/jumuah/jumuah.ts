@@ -52,7 +52,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       justify-content: center;
     }
     .card-head h2 {
-      font-size: 1.75rem;
+      font-size: 2.125rem;
     }
     .arabic {
       font-family: 'Amiri', serif;
@@ -66,12 +66,13 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       padding: 0;
       display: grid;
       /* Up to five in a row; tiles narrow (and their times shrink) before wrapping. */
-      grid-template-columns: repeat(auto-fit, minmax(min(9rem, calc(20% - 0.5rem)), 1fr));
-      gap: 0.625rem;
+      grid-template-columns: repeat(auto-fit, minmax(min(9rem, calc(20% - 0.4rem)), 1fr));
+      gap: 0.5rem;
     }
     .slot {
-      padding: 0.75rem 0.875rem;
+      padding: 0.75rem 0.625rem;
       border-radius: 0.875rem;
+      text-align: center;
       background: rgba(255, 255, 255, 0.06);
       transition: background 0.4s ease, opacity 0.4s ease;
     }
@@ -83,7 +84,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       opacity: 0.5;
     }
     .name {
-      font-size: 0.75rem;
+      font-size: 0.9375rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       opacity: 0.7;
@@ -92,7 +93,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
       margin: 0.375rem 0 0;
     }
     .times dt {
-      font-size: 0.75rem;
+      font-size: 0.875rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       opacity: 0.6;
@@ -100,7 +101,7 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
     }
     .times dd {
       margin: 0;
-      font-size: min(1.5rem, 3.3cqw);
+      font-size: min(2.25rem, 3.6cqw);
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       line-height: 1.15;
@@ -116,12 +117,25 @@ import { PrayerTimePipe } from '../../core/prayer-time.pipe';
     }
     .shared-location {
       margin: 0.75rem 0.25rem 0;
-      font-size: 0.8125rem;
+      font-size: 0.9375rem;
       opacity: 0.7;
     }
     .empty {
       margin: 0;
       opacity: 0.7;
+    }
+    /* Phones: too narrow for five across, so wrap to fit at a readable size. */
+    @media (max-width: 600px) {
+      .slots {
+        grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+      }
+      .times dd {
+        font-size: 1.375rem;
+      }
+      .name,
+      .times dt {
+        font-size: 0.75rem;
+      }
     }
   `,
 })
