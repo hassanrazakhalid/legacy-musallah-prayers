@@ -13,6 +13,7 @@ import {
 import { MasjidData } from '../core/masjid-data';
 import { AdminAuth, errorMessage } from './admin-auth';
 import { comingSunday, prayersFromFiles, todayKey } from './from-files';
+import { TimeField } from './time-field';
 
 interface Row {
   key: SalahKey;
@@ -53,6 +54,7 @@ function longDate(iso: string): string {
  */
 @Component({
   selector: 'app-prayers-tab',
+  imports: [TimeField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(window:beforeunload)': 'onBeforeUnload($event)' },
   template: `
@@ -112,12 +114,12 @@ function longDate(iso: string): string {
               <th class="name" scope="row">{{ names[r.key] }}</th>
               @for (f of fields; track f) {
                 <td [class.next-col]="f.startsWith('next')" [class.changed]="isChanged(r, f)">
-                  <input
-                    type="time"
+                  <app-time-field
                     [value]="r[f]"
-                    [class.invalid]="invalid().has(r.key + f)"
-                    (input)="set(i, f, $any($event.target).value)"
-                    [attr.aria-label]="names[r.key] + ' ' + labels[f]"
+                    (valueChange)="set(i, f, $event)"
+                    [invalid]="invalid().has(r.key + f)"
+                    [label]="names[r.key] + ' ' + labels[f]"
+                    [defaultAmPm]="r.key === 'fajr' ? 'AM' : 'PM'"
                   />
                 </td>
               }
@@ -183,12 +185,18 @@ export class PrayersTab {
       for (const f of ['adhan', 'iqamah'] as const) {
         if (!isHhmm(r[f])) {
           cells.push(r.key + f);
-          messages.push(`${name}: this week's ${f} is required.`);
+          messages.push(`${name}: this week's ${f} is ${r[f] ? `not a valid time ("${r[f]}")` : 'required'}.`);
         }
       }
       if (isHhmm(r.adhan) && isHhmm(r.iqamah) && r.adhan > r.iqamah) {
         cells.push(r.key + 'adhan');
         messages.push(`${name}: adhan (${clock(r.adhan)}) is after iqamah (${clock(r.iqamah)}).`);
+      }
+      for (const f of ['nextAdhan', 'nextIqamah'] as const) {
+        if (r[f] && !isHhmm(r[f])) {
+          cells.push(r.key + f);
+          messages.push(`${name}: "${r[f]}" is not a valid time.`);
+        }
       }
       if (!!r.nextAdhan !== !!r.nextIqamah) {
         cells.push(r.key + (r.nextAdhan ? 'nextIqamah' : 'nextAdhan'));

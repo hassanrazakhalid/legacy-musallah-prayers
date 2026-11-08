@@ -5,6 +5,7 @@ import { isHhmm, JUMUAH, JumuahDoc } from '../core/firestore-schema';
 import { MasjidData } from '../core/masjid-data';
 import { AdminAuth, errorMessage } from './admin-auth';
 import { jumuahFromFiles } from './from-files';
+import { TimeField } from './time-field';
 
 interface Slot {
   /** Firestore document id; null for a slot that hasn't been saved yet. */
@@ -27,6 +28,7 @@ function ordinal(n: number): string {
 /** Jumu'ah slots (any number): name, adhan, khutbah, iqamah and location, in display order. */
 @Component({
   selector: 'app-jumuah-tab',
+  imports: [TimeField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(window:beforeunload)': 'onBeforeUnload($event)' },
   template: `
@@ -70,12 +72,11 @@ function ordinal(n: number): string {
               <td><input type="text" [value]="s.name" (input)="set(i, 'name', $any($event.target).value)" aria-label="Name" /></td>
               @for (f of timeFields; track f) {
                 <td>
-                  <input
-                    type="time"
+                  <app-time-field
                     [value]="s[f]"
-                    [class.invalid]="invalid().has(i + f)"
-                    (input)="set(i, f, $any($event.target).value)"
-                    [attr.aria-label]="s.name + ' ' + f"
+                    (valueChange)="set(i, f, $event)"
+                    [invalid]="invalid().has(i + f)"
+                    [label]="s.name + ' ' + f"
                   />
                 </td>
               }
@@ -123,8 +124,16 @@ export class JumuahTab {
     const messages: string[] = [];
     this.slots().forEach((s, i) => {
       const name = s.name || `Row ${i + 1}`;
-      if (!isHhmm(s.adhan)) (cells.push(i + 'adhan'), messages.push(`${name}: adhan is required.`));
-      if (!isHhmm(s.iqamah)) (cells.push(i + 'iqamah'), messages.push(`${name}: iqamah is required.`));
+      for (const f of ['adhan', 'iqamah'] as const) {
+        if (!isHhmm(s[f])) {
+          cells.push(i + f);
+          messages.push(`${name}: ${f} is ${s[f] ? `not a valid time ("${s[f]}")` : 'required'}.`);
+        }
+      }
+      if (s.khutbah && !isHhmm(s.khutbah)) {
+        cells.push(i + 'khutbah');
+        messages.push(`${name}: khutbah "${s.khutbah}" is not a valid time.`);
+      }
       if (isHhmm(s.adhan) && isHhmm(s.iqamah) && s.adhan > s.iqamah) {
         cells.push(i + 'adhan');
         messages.push(`${name}: adhan is after iqamah.`);
