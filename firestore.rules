@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Deploy with: firebase deploy --only firestore:rules   (from the repo root)
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Signed in AND listed in users/{uid} with role "admin".
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isTime(v) {
+      return v is string && v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+    }
+    function isDate(v) {
+      return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+    function isPair(p) {
+      return p is map && isTime(p.adhan) && isTime(p.iqamah);
+    }
+
+    // prayers/{fajr|dhuhr|asr|maghrib|isha}: this week's and next week's adhan/iqamah.
+    match /prayers/{key} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && key in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
+        && isPair(request.resource.data.current)
+        && (request.resource.data.next == null
+            || (isPair(request.resource.data.next) && isDate(request.resource.data.next.effectiveDate)));
+      allow delete: if false;
+    }
+
+    // jumuah/{id}: one document per Jumu'ah slot.
+    match /jumuah/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.name is string
+        && isTime(request.resource.data.adhan)
+        && isTime(request.resource.data.iqamah)
+        && (request.resource.data.khutbah == null || isTime(request.resource.data.khutbah))
+        && request.resource.data.order is int;
+      allow delete: if isAdmin();
+    }
+
+    // users/{uid}: who may edit. Managed in the Firebase console, never from the app.
+    match /users/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+  }
+}

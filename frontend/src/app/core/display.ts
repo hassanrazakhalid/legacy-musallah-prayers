@@ -10,6 +10,8 @@ import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angul
 @Injectable({ providedIn: 'root' })
 export class Display {
   private readonly size = signal({ w: innerWidth, h: innerHeight });
+  /** True while the display page is showing; the admin page doesn't get the wide/TV scaling. */
+  readonly active = signal(false);
 
   readonly tv = (() => {
     const params = new URLSearchParams(location.search);
@@ -28,8 +30,8 @@ export class Display {
 
     effect(() => {
       const root = document.documentElement.classList;
-      root.toggle('wide', this.wide());
-      root.toggle('tv', this.tv);
+      root.toggle('wide', this.active() && this.wide());
+      root.toggle('tv', this.active() && this.tv);
     });
   }
 }

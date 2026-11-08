@@ -54,11 +54,15 @@
 
 @if (!display.tv) {
   <footer class="footer">
-    Iqamah from the published {{ store.masjidName() }} schedule · Adhan
-    {{ store.offsets().fajr }}/{{ store.offsets().dhuhr }}/{{ store.offsets().asr }}/{{ store.offsets().maghrib }}/{{ store.offsets().isha }}
-    min before iqamah (Jumu'ah {{ store.offsets().jumuah }}) · Sunrise and sunset from iqamah.ca · Mountain Time
-    @if (store.dataSource() === 'bundled') {
-      · bundled copy
+    @if (store.dataSource() === 'firestore') {
+      Adhan and iqamah from the {{ store.masjidName() }} schedule · Sunrise from iqamah.ca · Mountain Time
+    } @else {
+      Iqamah from the published {{ store.masjidName() }} schedule · Adhan
+      {{ store.offsets().fajr }}/{{ store.offsets().dhuhr }}/{{ store.offsets().asr }}/{{ store.offsets().maghrib }}/{{ store.offsets().isha }}
+      min before iqamah (Jumu'ah {{ store.offsets().jumuah }}) · Sunrise and sunset from iqamah.ca · Mountain Time
+      @if (store.dataSource() === 'bundled') {
+        · bundled copy
+      }
     }
   </footer>
 

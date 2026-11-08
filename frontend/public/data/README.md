@@ -1,5 +1,8 @@
 # Prayer time data
 
+> **Prayer and Jumu'ah times are now edited on the admin page (`#/admin`) and stored in Firebase.** See [ADMIN.md](../../../ADMIN.md).
+> The display falls back to the files below only when Firebase has no times or can't be reached. `prayer-config.json` (masjid name, location, time zone) is still used.
+
 The website loads these files every time it opens, and screens that stay open (like the TV) reload them every 6 hours. Edit them here on GitHub and every screen updates; there's no need to rebuild the site.
 
 All times are local Calgary clock time (Alberta Time, UTC−6 year-round from Nov 1, 2026).

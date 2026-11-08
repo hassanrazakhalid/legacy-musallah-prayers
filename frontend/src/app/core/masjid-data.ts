@@ -1,5 +1,7 @@
-import { DestroyRef, inject, Injectable, isDevMode, signal } from '@angular/core';
+import { computed, DestroyRef, inject, Injectable, isDevMode, signal } from '@angular/core';
+import type { QuerySnapshot } from 'firebase/firestore';
 import { parseClock, parseCsv } from './csv';
+import { hhmmToMinutes, isHhmm, isIsoDate, JUMUAH, PRAYER_KEYS, PRAYERS, SalahKey } from './firestore-schema';
 import { loadScheduleScript, RawSchedule } from './iqamah-ca';
 
 /**
@@ -17,6 +19,8 @@ const BUNDLED_DATA_URL = 'data/';
 const BUNDLED_SALAH = BUNDLED_DATA_URL + 'iqamah.ca/salahschedule.js';
 const REFRESH_MS = 6 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 6000;
+/** How long first render waits for Firestore before showing the bundled files. */
+const FIRESTORE_WAIT_MS = 5000;
 
 export interface AdhanOffsets {
   fajr: number;
@@ -54,6 +58,8 @@ export interface SunDay {
 
 export interface JumuahSlot {
   name: string;
+  /** Minutes after local midnight; null means iqamah minus the configured Jumu'ah minutes. */
+  adhan: number | null;
   /** Minutes after local midnight. */
   khutbah: number | null;
   /** Minutes after local midnight. */
@@ -61,7 +67,22 @@ export interface JumuahSlot {
   location: string;
 }
 
-export type DataSource = 'remote' | 'bundled';
+/** Adhan and iqamah in minutes after local midnight. */
+export interface SalahTimes {
+  adhan: number;
+  iqamah: number;
+}
+
+/** One prayer from the admin page (Firestore): this week's times and, optionally, next week's. */
+export interface WeeklyPrayer {
+  current: SalahTimes;
+  next: (SalahTimes & { effectiveDate: string }) | null;
+}
+
+export type WeeklySchedule = ReadonlyMap<SalahKey, WeeklyPrayer>;
+
+/** 'firestore': times from the admin page. 'remote'/'bundled': the CSV files (GitHub or the copy in the app). */
+export type DataSource = 'firestore' | 'remote' | 'bundled';
 
 const DEFAULT_CONFIG: MasjidConfig = {
   masjid: {
@@ -91,16 +112,82 @@ export class MasjidData {
   readonly schedule = signal<ReadonlyMap<string, IqamahDay>>(new Map());
   /** Sunrise and sunset from iqamah.ca, keyed by ISO date. */
   readonly sun = signal<ReadonlyMap<string, SunDay>>(new Map());
-  readonly jumuah = signal<JumuahSlot[]>([]);
-  readonly source = signal<DataSource | null>(null);
+  /** Jumu'ah from jumuah.csv. */
+  readonly fileJumuah = signal<JumuahSlot[]>([]);
+  private readonly fileSource = signal<DataSource | null>(null);
   readonly errors = signal<string[]>([]);
+
+  /**
+   * Prayer times from the admin page, live. Null until Firestore has all five prayers, in which case
+   * the display uses the CSV schedule instead.
+   */
+  readonly weekly = signal<WeeklySchedule | null>(null);
+  private readonly firestoreJumuah = signal<JumuahSlot[] | null>(null);
+
+  /** Once the admin page has published prayer times, Jumu'ah comes from Firestore too (even if empty). */
+  readonly jumuah = computed(() => (this.weekly() && this.firestoreJumuah()) || this.fileJumuah());
+  readonly source = computed<DataSource | null>(() => (this.weekly() ? 'firestore' : this.fileSource()));
+
+  private firestoreReady?: Promise<void>;
 
   constructor() {
     const id = setInterval(() => this.load(), REFRESH_MS);
-    inject(DestroyRef).onDestroy(() => clearInterval(id));
+    const destroy = inject(DestroyRef);
+    destroy.onDestroy(() => clearInterval(id));
+    this.firestoreReady = this.listen(destroy);
   }
 
+  /** Loads the files; the first call also waits (briefly) for Firestore's first answer. */
   async load(): Promise<void> {
+    const ready = this.firestoreReady;
+    this.firestoreReady = undefined;
+    await Promise.all([this.loadFiles(), ready]);
+  }
+
+  /**
+   * Subscribes to the prayers and jumuah collections. Resolves once the first prayer snapshot
+   * arrives (from the server or the offline cache), or after FIRESTORE_WAIT_MS.
+   */
+  private listen(destroy: DestroyRef): Promise<void> {
+    return new Promise<void>(async (resolve) => {
+      const timer = setTimeout(resolve, FIRESTORE_WAIT_MS);
+      const done = () => (clearTimeout(timer), resolve());
+      // Loaded on demand so the Firestore SDK stays out of the main bundle.
+      let sdk: [typeof import('./firebase'), typeof import('firebase/firestore')];
+      try {
+        sdk = await Promise.all([import('./firebase'), import('firebase/firestore')]);
+      } catch (e) {
+        console.warn('[masjid-data] could not load Firebase: using the files instead', e);
+        return done();
+      }
+      const [{ db }, { collection, onSnapshot }] = sdk;
+      const onError = (what: string) => (e: unknown) => {
+        console.warn(`[masjid-data] Firestore ${what}: using the files instead`, e);
+        done();
+      };
+      const stopPrayers = onSnapshot(
+        collection(db, PRAYERS),
+        (snap) => {
+          // An empty answer from the offline cache only means we haven't heard from the server yet.
+          if (snap.empty && snap.metadata.fromCache) return;
+          this.weekly.set(parseWeekly(snap));
+          done();
+        },
+        onError(PRAYERS),
+      );
+      const stopJumuah = onSnapshot(
+        collection(db, JUMUAH),
+        (snap) => {
+          if (snap.empty && snap.metadata.fromCache) return;
+          this.firestoreJumuah.set(parseFirestoreJumuah(snap));
+        },
+        onError(JUMUAH),
+      );
+      destroy.onDestroy(() => (stopPrayers(), stopJumuah()));
+    });
+  }
+
+  private async loadFiles(): Promise<void> {
     const errors: string[] = [];
     const sources = new Set<DataSource>();
 
@@ -132,8 +219,8 @@ export class MasjidData {
     this.config.set(config);
     if (schedule.size) this.schedule.set(schedule);
     if (sun.size) this.sun.set(sun);
-    if (jumuahRes) this.jumuah.set(parseJumuah(jumuahRes.text, config.jumuahFile, errors));
-    if (sources.size) this.source.set(sources.has('bundled') ? 'bundled' : 'remote');
+    if (jumuahRes) this.fileJumuah.set(parseJumuah(jumuahRes.text, config.jumuahFile, errors));
+    if (sources.size) this.fileSource.set(sources.has('bundled') ? 'bundled' : 'remote');
     this.errors.set(errors);
     errors.forEach((e) => console.warn('[masjid-data]', e));
   }
@@ -245,10 +332,53 @@ function parseJumuah(text: string, file: string, errors: string[]): JumuahSlot[]
     return [
       {
         name: column(row, 'Name') || `Jumu'ah ${i + 1}`,
+        adhan: null,
         khutbah: parseClock(column(row, 'Khutbah')),
         iqamah,
         location: column(row, 'Location'),
       },
     ];
   });
+}
+
+/** All five prayers with valid times, or null (so the display falls back to the files). */
+function parseWeekly(snap: QuerySnapshot): WeeklySchedule | null {
+  const out = new Map<SalahKey, WeeklyPrayer>();
+  const times = (v: unknown): SalahTimes | null => {
+    const t = v as Partial<Record<keyof SalahTimes, unknown>> | null | undefined;
+    return t && isHhmm(t.adhan) && isHhmm(t.iqamah) ? { adhan: hhmmToMinutes(t.adhan), iqamah: hhmmToMinutes(t.iqamah) } : null;
+  };
+  for (const d of snap.docs) {
+    const key = d.id as SalahKey;
+    if (!PRAYER_KEYS.includes(key)) continue;
+    const data = d.data();
+    const current = times(data['current']);
+    const next = times(data['next']);
+    const effectiveDate = data['next']?.effectiveDate;
+    if (!current) {
+      console.warn(`[masjid-data] prayers/${key}: could not read`, data);
+      continue;
+    }
+    out.set(key, { current, next: next && isIsoDate(effectiveDate) ? { ...next, effectiveDate } : null });
+  }
+  const missing = PRAYER_KEYS.filter((k) => !out.has(k));
+  if (missing.length) {
+    if (snap.size) console.warn(`[masjid-data] Firestore is missing ${missing.join(', ')}: using the files`);
+    return null;
+  }
+  return out;
+}
+
+function parseFirestoreJumuah(snap: QuerySnapshot): JumuahSlot[] {
+  return snap.docs
+    .map((d) => d.data())
+    .filter((j) => isHhmm(j['iqamah']))
+    .sort((a, b) => (a['order'] ?? 0) - (b['order'] ?? 0))
+    .map((j, i) => ({
+      name: j['name'] || `Jumu'ah ${i + 1}`,
+      adhan: isHhmm(j['adhan']) ? hhmmToMinutes(j['adhan']) : null,
+      khutbah: isHhmm(j['khutbah']) ? hhmmToMinutes(j['khutbah']) : null,
+      iqamah: hhmmToMinutes(j['iqamah']),
+      location: j['location'] ?? '',
+    }));
 }
