@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Clock } from './clock';
-import { PRAYER_KEYS, SalahKey } from './firestore-schema';
+import { PRAYER_KEYS, SalahKey, timesOn } from './firestore-schema';
 import { MasjidData, SalahTimes } from './masjid-data';
 import { computeDay, DayTimes, ISNA, PrayerLocation } from './prayer-calc';
 import { skyState } from './sky-model';
@@ -96,7 +96,7 @@ export class PrayerStore {
   readonly prayers = computed(() => this.todaySchedule().rows);
 
   /**
-   * The next date the iqamah schedule changes. From the admin page: the earliest next-week date still
+   * The next date the iqamah schedule changes. From the admin page: the earliest next-week or +/- change date still
    * ahead. From the CSV: the next date whose rules differ ("Sunset+ 10 min" counts as unchanged even
    * though its clock time drifts daily). Falls back to next Sunday when no change is ahead.
    */
@@ -106,7 +106,7 @@ export class PrayerStore {
     const weekly = this.data.weekly();
     if (weekly) {
       const ahead = [...weekly.values()]
-        .map((p) => p.next?.effectiveDate)
+        .flatMap((p) => [p.next?.effectiveDate, ...p.adjustments.map((a) => a.date)])
         .filter((d): d is string => !!d && d > todayKey)
         .sort();
       if (ahead.length) {
@@ -279,18 +279,15 @@ export class PrayerStore {
   }
 
   /**
-   * The admin page's times for a date: next week's from its effective date, otherwise this week's.
+   * The admin page's times for a date: next week's from its effective date, otherwise this week's,
+   * plus any dated +/- changes (see timesOn).
    * Null when the admin page hasn't published times (the CSV schedule is used instead).
    */
   private weeklyFor(ymd: Ymd): Record<SalahKey, SalahTimes> | null {
     const weekly = this.data.weekly();
     if (!weekly) return null;
     const key = ymdKey(ymd);
-    const pick = (k: SalahKey) => {
-      const p = weekly.get(k)!;
-      return p.next && p.next.effectiveDate <= key ? { adhan: p.next.adhan, iqamah: p.next.iqamah } : p.current;
-    };
-    return Object.fromEntries(PRAYER_KEYS.map((k) => [k, pick(k)])) as Record<SalahKey, SalahTimes>;
+    return Object.fromEntries(PRAYER_KEYS.map((k) => [k, timesOn(weekly.get(k)!, key)])) as Record<SalahKey, SalahTimes>;
   }
 
   /** What defines each prayer's times on a date, for spotting schedule changes. */

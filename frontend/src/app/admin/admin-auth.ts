@@ -1,7 +1,5 @@
 import { Injectable, signal } from '@angular/core';
 import {
-  connectAuthEmulator,
-  getAuth,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
@@ -9,7 +7,7 @@ import {
   User,
 } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db, firebaseApp, useEmulator } from '../core/firebase';
+import { adminAuth as auth, adminDb as db } from './admin-firebase';
 import { UserDoc, USERS } from '../core/firestore-schema';
 
 export type AuthState = 'loading' | 'signedOut' | 'notAdmin' | 'admin' | 'error';
@@ -20,7 +18,7 @@ export type AuthState = 'loading' | 'signedOut' | 'notAdmin' | 'admin' | 'error'
  */
 @Injectable({ providedIn: 'root' })
 export class AdminAuth {
-  private readonly auth = getAuth(firebaseApp);
+  private readonly auth = auth;
 
   readonly state = signal<AuthState>('loading');
   readonly user = signal<User | null>(null);
@@ -30,7 +28,6 @@ export class AdminAuth {
   private stopProfile?: () => void;
 
   constructor() {
-    if (useEmulator) connectAuthEmulator(this.auth, 'http://127.0.0.1:9099', { disableWarnings: true });
     onAuthStateChanged(this.auth, (user) => {
       this.stopProfile?.();
       this.stopProfile = undefined;

@@ -3,7 +3,6 @@ import { initializeApp } from 'firebase/app';
 import {
   connectFirestoreEmulator,
   initializeFirestore,
-  memoryLocalCache,
   persistentLocalCache,
   persistentMultipleTabManager,
 } from 'firebase/firestore';
@@ -27,12 +26,16 @@ export const firebaseConfig = {
  */
 export const useEmulator = isDevMode() && new URLSearchParams(location.search).has('emulator');
 
-export const firebaseApp = initializeApp(useEmulator ? { ...firebaseConfig, projectId: 'demo-legacy' } : firebaseConfig);
+/** Options for initializeApp (the emulators need a demo- project id). */
+export const appOptions = useEmulator ? { ...firebaseConfig, projectId: 'demo-legacy' } : firebaseConfig;
 
-/** Cached on disk so a screen that reloads while offline still shows the last times it saw. */
+export const firebaseApp = initializeApp(appOptions);
+
+/**
+ * The display's Firestore: cached on disk so a screen that reloads while offline still shows the last
+ * times it saw. Read-only and signed out; the admin page has its own instance (admin/admin-firebase.ts).
+ */
 export const db = initializeFirestore(firebaseApp, {
-  localCache: useEmulator
-    ? memoryLocalCache()
-    : persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });
 if (useEmulator) connectFirestoreEmulator(db, '127.0.0.1', 8080);

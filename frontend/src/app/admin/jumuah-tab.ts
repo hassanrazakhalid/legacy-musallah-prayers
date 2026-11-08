@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { collection, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { db } from '../core/firebase';
+import { adminDb as db } from './admin-firebase';
 import { isHhmm, JUMUAH, JumuahDoc } from '../core/firestore-schema';
 import { MasjidData } from '../core/masjid-data';
 import { AdminAuth, errorMessage } from './admin-auth';

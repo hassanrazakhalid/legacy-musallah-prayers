@@ -29,7 +29,7 @@ The app can't change `users`; only the console can.
 
 | Collection | Document | Fields |
 |---|---|---|
-| `prayers` | `fajr`, `dhuhr`, `asr`, `maghrib`, `isha` | `current: {adhan, iqamah}`, `next: {adhan, iqamah, effectiveDate} \| null`, `order`, `name`, `updatedAt`, `updatedBy` |
+| `prayers` | `fajr`, `dhuhr`, `asr`, `maghrib`, `isha` | `current: {adhan, iqamah}`, `next: {adhan, iqamah, effectiveDate} \| null`, `adjustments: [{date, minutes}]`, `order`, `name`, `updatedAt`, `updatedBy` |
 | `jumuah` | auto id, one per Jumu'ah | `order`, `name`, `adhan`, `khutbah` (or null), `iqamah`, `location`, `updatedAt`, `updatedBy` |
 | `users` | the account's Auth UID | `email`, `name`, `role` (`admin` may edit) |
 
@@ -43,6 +43,17 @@ Times are 24-hour `HH:mm` strings in Calgary time; dates are `YYYY-MM-DD`. Anyon
 - After that, the admin page shows those times as *this week*, with empty next-week cells. Enter the
   following week and Save. **Promote next week → this week** does the same move early.
 - A prayer with empty next-week cells keeps its current times.
+
+## ± minute columns
+
+- **+ Add date** adds a column at the end. Pick a date and type minutes per prayer, e.g. `+10` or `-15`
+  (blank = no change). From that date, that prayer's adhan **and** iqamah move by those minutes and stay moved.
+- Columns add up: +10 on the 20th and -5 on the 27th means +10 from the 20th and +5 from the 27th.
+- Next week's times are used exactly as entered: only ± dates on or after next week's start shift them.
+- The small time under each box is the resulting iqamah on that date.
+- **No cron job.** Every screen works out each day's times from these dates on its own, so a change
+  dated Friday shows on Friday without anything running on a server. When you open the admin page after a
+  date has passed, that change is shown as part of "this week" and its column disappears.
 
 ## Developing against the emulators
 

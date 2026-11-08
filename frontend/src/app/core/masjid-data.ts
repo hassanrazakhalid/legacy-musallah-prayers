@@ -1,7 +1,17 @@
 import { computed, DestroyRef, inject, Injectable, isDevMode, signal } from '@angular/core';
 import type { QuerySnapshot } from 'firebase/firestore';
 import { parseClock, parseCsv } from './csv';
-import { hhmmToMinutes, isHhmm, isIsoDate, JUMUAH, PRAYER_KEYS, PRAYERS, SalahKey } from './firestore-schema';
+import {
+  hhmmToMinutes,
+  isAdjustment,
+  isHhmm,
+  isIsoDate,
+  JUMUAH,
+  PRAYER_KEYS,
+  PrayerSchedule,
+  PRAYERS,
+  SalahKey,
+} from './firestore-schema';
 import { loadScheduleScript, RawSchedule } from './iqamah-ca';
 
 /**
@@ -73,11 +83,8 @@ export interface SalahTimes {
   iqamah: number;
 }
 
-/** One prayer from the admin page (Firestore): this week's times and, optionally, next week's. */
-export interface WeeklyPrayer {
-  current: SalahTimes;
-  next: (SalahTimes & { effectiveDate: string }) | null;
-}
+/** One prayer from the admin page (Firestore): this week, optionally next week, and dated +/- changes. */
+export type WeeklyPrayer = PrayerSchedule;
 
 export type WeeklySchedule = ReadonlyMap<SalahKey, WeeklyPrayer>;
 
@@ -359,7 +366,10 @@ function parseWeekly(snap: QuerySnapshot): WeeklySchedule | null {
       console.warn(`[masjid-data] prayers/${key}: could not read`, data);
       continue;
     }
-    out.set(key, { current, next: next && isIsoDate(effectiveDate) ? { ...next, effectiveDate } : null });
+    const adjustments = (Array.isArray(data['adjustments']) ? data['adjustments'] : [])
+      .filter(isAdjustment)
+      .map(({ date, minutes }) => ({ date, minutes }));
+    out.set(key, { current, next: next && isIsoDate(effectiveDate) ? { ...next, effectiveDate } : null, adjustments });
   }
   const missing = PRAYER_KEYS.filter((k) => !out.has(k));
   if (missing.length) {
