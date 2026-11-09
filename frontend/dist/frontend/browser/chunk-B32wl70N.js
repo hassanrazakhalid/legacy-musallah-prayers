@@ -1,1 +1,0 @@
-import"./main-UDTPW22K.js";import"./chunk-BONP0Gkc.js";import{a as u,i as l,n as d,r as g,t as c}from"./chunk-GHFKhmLB.js";export{g as appOptions,u as db,d as firebaseApp,c as firebaseConfig,l as useEmulator};

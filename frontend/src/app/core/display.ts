@@ -1,4 +1,5 @@
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
+import { launchParams } from './launch-params';
 
 /**
  * Chooses the page layout for the current screen and exposes it as classes on <html>:
@@ -13,10 +14,7 @@ export class Display {
   /** True while the display page is showing; the admin page doesn't get the wide/TV scaling. */
   readonly active = signal(false);
 
-  readonly tv = (() => {
-    const params = new URLSearchParams(location.search);
-    return params.has('tv') || params.get('mode') === 'tv';
-  })();
+  readonly tv = launchParams.has('tv') || launchParams.get('mode') === 'tv';
 
   readonly wide = computed(() => {
     const { w, h } = this.size();

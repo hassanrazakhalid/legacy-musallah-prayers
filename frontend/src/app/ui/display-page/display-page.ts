@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
 import { Clock } from '../../core/clock';
 import { Display } from '../../core/display';
+import { launchParams } from '../../core/launch-params';
 import { IqamahChime } from '../../core/iqamah-chime';
 import { PrayerStore } from '../../core/prayer-store';
 import { Jumuah } from '../jumuah/jumuah';
@@ -36,7 +37,7 @@ export class DisplayPage {
     inject(DestroyRef).onDestroy(() => this.display.active.set(false));
 
     // `?at=19:05` opens the page previewing that time of day (handy for sharing designs).
-    const at = new URLSearchParams(location.search).get('at')?.match(/^(\d{1,2}):(\d{2})$/);
+    const at = launchParams.get('at')?.match(/^(\d{1,2}):(\d{2})$/);
     if (at) {
       const minutes = Number(at[1]) * 60 + Number(at[2]);
       inject(Clock).previewAt(new Date(this.store.midnight().getTime() + minutes * 60_000));

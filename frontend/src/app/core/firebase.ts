@@ -1,5 +1,6 @@
 import { isDevMode } from '@angular/core';
 import { initializeApp } from 'firebase/app';
+import { launchParams } from './launch-params';
 import {
   connectFirestoreEmulator,
   initializeFirestore,
@@ -24,7 +25,7 @@ export const firebaseConfig = {
  * `ng serve` with `?emulator` uses the local Firebase emulators (`firebase emulators:start` from the
  * repo root) instead of the real project. Production builds ignore it.
  */
-export const useEmulator = isDevMode() && new URLSearchParams(location.search).has('emulator');
+export const useEmulator = isDevMode() && launchParams.has('emulator');
 
 /** Options for initializeApp (the emulators need a demo- project id). */
 export const appOptions = useEmulator ? { ...firebaseConfig, projectId: 'demo-legacy' } : firebaseConfig;
