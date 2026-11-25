@@ -26,9 +26,9 @@ import {
   parseWeekly,
   RawSchedule,
 } from '../../src/app/core/masjid-parse';
-import { ISNA } from '../../src/app/core/prayer-calc';
-import { publishedSalahOn, ScheduleInputs } from '../../src/app/core/salah-times';
-import { addDays, Ymd, ymdKey, zonedDateTime, zonedYmd } from '../../src/app/core/zoned-time';
+import { computeDay, ISNA } from '../../src/app/core/prayer-calc';
+import { publishedSalahOn, publishedSun, ScheduleInputs } from '../../src/app/core/salah-times';
+import { addDays, Ymd, ymdKey, zonedDateTime, zonedMidnight, zonedYmd } from '../../src/app/core/zoned-time';
 
 const FIRESTORE_PROJECT = 'legacy-musallah';
 const FIRESTORE_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT}/databases/(default)/documents/`;
@@ -41,6 +41,8 @@ interface CalEvent {
   uid: string;
   start: Date;
   end: Date;
+  /** Reminders count back from the iqamah (events run from adhan to the end of the prayer's time). */
+  iqamah: Date;
   summary: string;
   description: string;
   /** The prayer whose reminder applies; Jumu'ah events carry none. */
@@ -128,14 +130,28 @@ function buildEvents(inputs: ScheduleInputs, jumuah: JumuahSlot[], masjid: strin
     const salah = publishedSalahOn(inputs, ymd);
     if (!salah) continue; // No published schedule for this date: leave it out rather than guess.
 
+    // Each event lasts the prayer's whole time, as the display's NOW marker does, so a calendar shows
+    // Zuhr until Asr begins rather than jumping to Asr once Zuhr's iqamah has passed.
+    // Isha ends at midnight instead of the next Fajr, to keep it out of the next day's view.
+    const { sunrise } = publishedSun(inputs, ymd, computeDay(ymd, inputs.location, inputs.method));
+    const ends: Record<SalahKey, { at: Date; label: string }> = {
+      fajr: { at: sunrise, label: 'sunrise' },
+      dhuhr: { at: salah.asr.adhan, label: 'Asr' },
+      asr: { at: salah.maghrib.adhan, label: 'Maghrib' },
+      maghrib: { at: salah.isha.adhan, label: 'Isha' },
+      isha: { at: zonedMidnight(addDays(ymd, 1), tz), label: 'midnight' },
+    };
     for (const key of PRAYER_KEYS) {
       const { adhan, iqamah } = salah[key];
+      const end = new Date(Math.max(ends[key].at.getTime(), iqamah.getTime(), adhan.getTime()));
+      const until = key === 'isha' ? '' : `\n${PRAYER_NAMES[key]} time ends ${t(ends[key].at)} (${ends[key].label})`;
       events.push({
         uid: `${date}-${key}`,
         start: adhan,
-        end: iqamah < adhan ? adhan : iqamah,
+        end,
+        iqamah,
         summary: `${PRAYER_NAMES[key]} · Iqamah ${t(iqamah)}`,
-        description: `Adhan ${t(adhan)} · Iqamah ${t(iqamah)}\n${masjid}`,
+        description: `Adhan ${t(adhan)} · Iqamah ${t(iqamah)}${until}\n${masjid}`,
         salah: key,
         iqamahLabel: t(iqamah),
       });
@@ -153,6 +169,7 @@ function buildEvents(inputs: ScheduleInputs, jumuah: JumuahSlot[], masjid: strin
           uid: `${date}-jumuah-${n + 1}`,
           start: adhan < iqamah ? adhan : iqamah,
           end: iqamah,
+          iqamah,
           summary: `${slot.name} · Iqamah ${t(iqamah)}`,
           description: `${khutbah}Iqamah ${t(iqamah)}\n${slot.location || masjid}`,
           iqamahLabel: t(iqamah),
@@ -192,7 +209,7 @@ function fold(line: string): string {
 
 /** Alert `minutes` before the iqamah, written relative to the event start (the adhan). */
 function alarm(event: CalEvent, minutes: number, iqamah: string): string[] {
-  const offset = Math.round((event.end.getTime() - event.start.getTime()) / 60_000) - minutes;
+  const offset = Math.round((event.iqamah.getTime() - event.start.getTime()) / 60_000) - minutes;
   const trigger = offset < 0 ? `-PT${-offset}M` : `PT${offset}M`;
   return [
     'BEGIN:VALARM',
@@ -211,7 +228,7 @@ function buildIcs(events: CalEvent[], reminders: Reminders, location: string, st
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeText(CALENDAR_NAME)}`,
-    `X-WR-CALDESC:${escapeText('Adhan to iqamah for each prayer, and Jumu\'ah. Updates automatically.')}`,
+    `X-WR-CALDESC:${escapeText('Each prayer from its adhan to the end of its time, and Jumu\'ah. Updates automatically.')}`,
     `REFRESH-INTERVAL;VALUE=DURATION:${REFRESH}`,
     `X-PUBLISHED-TTL:${REFRESH}`,
   ];
