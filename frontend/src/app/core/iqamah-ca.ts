@@ -1,5 +1,6 @@
-/** Raw day records from an iqamah.ca data script, keyed by ISO date: { sunrise: "8:27 AM", ... }. */
-export type RawSchedule = Record<string, Record<string, string>>;
+import type { RawSchedule } from './masjid-parse';
+
+export type { RawSchedule };
 
 const LOAD_TIMEOUT_MS = 10_000;
 

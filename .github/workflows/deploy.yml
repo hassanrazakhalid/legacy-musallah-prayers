@@ -1,12 +1,21 @@
-# Publishes the committed build (frontend/dist) to GitHub Pages on every push to main.
-# Build locally first: `cd frontend && npx ng build`, then commit dist/ with your changes.
+# Publishes the committed build (frontend/dist) to GitHub Pages, together with the prayer-times
+# calendars (.ics) people subscribe to from the display's reminder panel.
+# Build the app locally first: `cd frontend && npx ng build`, then commit dist/ with your changes.
 # Data files (frontend/public/data) are fetched from GitHub at runtime, so editing them needs no rebuild.
 # Site: https://hassanrazakhalid.github.io/legacy-musallah-prayers/
+#
+# The calendars are not committed: every run regenerates them from Firestore (the admin page's times)
+# and the data files. Pushes always deploy. The schedule checks every 30 minutes and deploys only when
+# the calendar changed (an admin edit, or a new day entering the two-week window), so the calendars
+# follow admin edits within about half an hour and roll forward at least once a day.
+# Note: GitHub pauses scheduled workflows after 60 days without a commit; re-enable it in the Actions tab.
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -22,15 +31,44 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/setup-node@v4
         with:
-          path: frontend/dist/frontend/browser
+          node-version: 24
+
+      - name: Generate calendars
+        working-directory: frontend
+        run: |
+          cp -R dist/frontend/browser "$RUNNER_TEMP/site"
+          # The generator only imports the app's own TypeScript, so esbuild is the only install needed.
+          npx --yes esbuild@0.28.2 scripts/calendar/build-calendars.ts --bundle --platform=node --format=esm \
+            --log-level=warning --outfile="$RUNNER_TEMP/build-calendars.mjs"
+          node "$RUNNER_TEMP/build-calendars.mjs" --out "$RUNNER_TEMP/site"
+
+      - name: Compare with the live calendars
+        id: compare
+        run: |
+          new=$(jq -r .hash "$RUNNER_TEMP/site/calendar/version.json")
+          live=$(curl -fsS "https://hassanrazakhalid.github.io/legacy-musallah-prayers/calendar/version.json" | jq -r .hash || echo none)
+          echo "calendar hash: new $new, live $live"
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "$new" != "$live" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.compare.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/site
 
   deploy:
     needs: build
+    if: needs.build.outputs.changed == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

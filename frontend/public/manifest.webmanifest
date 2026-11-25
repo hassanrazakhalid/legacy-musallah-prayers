@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "Legacy Musallah Prayer Times",
+  "short_name": "Prayer Times",
+  "description": "Adhan and iqamah times for Legacy Musallah, Calgary.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#070b22",
+  "theme_color": "#070b22",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -55,6 +55,19 @@ Times are 24-hour `HH:mm` strings in Calgary time; dates are `YYYY-MM-DD`. Anyon
   dated Friday shows on Friday without anything running on a server. When you open the admin page after a
   date has passed, that change is shown as part of "this week" and its column disappears.
 
+## Calendar subscriptions
+
+The calendar button on the display lets people subscribe to the prayer times in Apple or Google
+Calendar, with a reminder per prayer. The calendar files are rebuilt by the GitHub Pages workflow
+(`.github/workflows/deploy.yml`), which checks Firestore every 30 minutes:
+
+- **Your edits reach the calendar files within about 30 minutes.** Each phone then picks them up on its
+  own schedule: Apple every few hours, Google Calendar up to about a day.
+- The files cover the next two weeks and roll forward every day.
+- Generate them locally with `cd frontend && npm run calendar -- --out <folder>`.
+- GitHub pauses scheduled workflows after 60 days without a commit. If calendars stop updating,
+  re-enable the workflow in the repository's Actions tab.
+
 ## Developing against the emulators
 
 ```bash

@@ -1,8 +1,9 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Clock } from './clock';
-import { PRAYER_KEYS, SalahKey, timesOn } from './firestore-schema';
-import { MasjidData, SalahTimes } from './masjid-data';
+import { PRAYER_KEYS, SalahKey } from './firestore-schema';
+import { MasjidData } from './masjid-data';
 import { computeDay, DayTimes, ISNA, PrayerLocation } from './prayer-calc';
+import { publishedSun, salahFor, ScheduleInputs, weeklyFor } from './salah-times';
 import { skyState } from './sky-model';
 import { addDays, daysInMonth, sameYmd, Ymd, ymdKey, zonedDateTime, zonedMidnight, zonedYmd } from './zoned-time';
 
@@ -78,6 +79,16 @@ export class PrayerStore {
   readonly offsets = computed(() => this.data.config().adhanMinutesBeforeIqamah);
   readonly dataSource = this.data.source;
   readonly now = this.clock.now;
+
+  /** Everything the shared schedule functions (salah-times.ts) need to work out a date's times. */
+  private readonly inputs = computed<ScheduleInputs>(() => ({
+    location: this.location(),
+    method: this.method(),
+    offsets: this.offsets(),
+    weekly: this.data.weekly(),
+    schedule: this.data.schedule(),
+    sun: this.data.sun(),
+  }));
 
   readonly todayYmd = computed(() => zonedYmd(this.now(), this.location().timeZone), { equal: sameYmd });
   readonly midnight = computed(() => zonedMidnight(this.todayYmd(), this.location().timeZone));
@@ -267,62 +278,17 @@ export class PrayerStore {
     return computeDay(ymd, this.location(), this.method());
   }
 
-  /**
-   * Sunrise and sunset for a date: iqamah.ca's published times when it has the date, otherwise
-   * calculated. Sunset is the Maghrib adhan.
-   */
-  private publishedSun(ymd: Ymd, calc: DayTimes): { sunrise: Date; sunset: Date } {
-    const day = this.data.sun().get(ymdKey(ymd));
-    if (!day) return { sunrise: calc.sunrise, sunset: calc.maghrib };
-    const tz = this.location().timeZone;
-    return { sunrise: zonedDateTime(ymd, day.sunrise, tz), sunset: zonedDateTime(ymd, day.sunset, tz) };
-  }
-
-  /**
-   * The admin page's times for a date: next week's from its effective date, otherwise this week's,
-   * plus any dated +/- changes (see timesOn).
-   * Null when the admin page hasn't published times (the CSV schedule is used instead).
-   */
-  private weeklyFor(ymd: Ymd): Record<SalahKey, SalahTimes> | null {
-    const weekly = this.data.weekly();
-    if (!weekly) return null;
-    const key = ymdKey(ymd);
-    return Object.fromEntries(PRAYER_KEYS.map((k) => [k, timesOn(weekly.get(k)!, key)])) as Record<SalahKey, SalahTimes>;
-  }
-
   /** What defines each prayer's times on a date, for spotting schedule changes. */
   private rulesFor(ymd: Ymd): Record<SalahKey, unknown> | null {
-    return this.weeklyFor(ymd) ?? this.data.schedule().get(ymdKey(ymd)) ?? null;
-  }
-
-  /** Adhan and iqamah for a date: the admin page's times, else the CSV (adhan = iqamah − minutes). */
-  private salahFor(ymd: Ymd, sunset: Date): Record<SalahKey, { adhan: Date; iqamah: Date }> | null {
-    const tz = this.location().timeZone;
-    const at = (mins: number) => zonedDateTime(ymd, mins, tz);
-    const weekly = this.weeklyFor(ymd);
-    if (weekly) {
-      const entry = (k: SalahKey) => [k, { adhan: at(weekly[k].adhan), iqamah: at(weekly[k].iqamah) }];
-      return Object.fromEntries(PRAYER_KEYS.map(entry));
-    }
-    const day = this.data.schedule().get(ymdKey(ymd));
-    if (!day) return null;
-    const offsets = this.offsets();
-    const iqamah: Record<SalahKey, Date> = {
-      fajr: at(day.fajr),
-      dhuhr: at(day.dhuhr),
-      asr: at(day.asr),
-      maghrib: 'afterSunset' in day.maghrib ? new Date(sunset.getTime() + minutes(day.maghrib.afterSunset)) : at(day.maghrib.at),
-      isha: at(day.isha),
-    };
-    const entry = (k: SalahKey) => [k, { iqamah: iqamah[k], adhan: new Date(iqamah[k].getTime() - minutes(offsets[k])) }];
-    return Object.fromEntries(PRAYER_KEYS.map(entry));
+    return weeklyFor(this.data.weekly(), ymd) ?? this.data.schedule().get(ymdKey(ymd)) ?? null;
   }
 
   /** Prayer rows for a date from the published schedule, falling back to calculated adhan times. */
   scheduleFor(ymd: Ymd): DaySchedule {
     const calc = this.sunTimes(ymd);
-    const { sunrise, sunset } = this.publishedSun(ymd, calc);
-    const salah = this.salahFor(ymd, sunset);
+    const inputs = this.inputs();
+    const { sunrise, sunset } = publishedSun(inputs, ymd, calc);
+    const salah = salahFor(inputs, ymd, sunset);
     if (!salah) {
       const sun: DayTimes = { ...calc, sunrise, maghrib: sunset };
       return {

@@ -1,0 +1,107 @@
+{
+  "configVersion": 1,
+  "timestamp": 1795634016501,
+  "index": "/legacy-musallah-prayers/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/legacy-musallah-prayers/chunk-B3hbw1WF.js",
+        "/legacy-musallah-prayers/chunk-BIdIRLID.js",
+        "/legacy-musallah-prayers/chunk-BONP0Gkc.js",
+        "/legacy-musallah-prayers/chunk-CkAcWJ-J.js",
+        "/legacy-musallah-prayers/chunk-D4-mg-MI.js",
+        "/legacy-musallah-prayers/chunk-ErS7GGcd.js",
+        "/legacy-musallah-prayers/data/ICSC_Iqamah_Schedule_fullyear2026_2027.csv",
+        "/legacy-musallah-prayers/data/README.md",
+        "/legacy-musallah-prayers/data/iqamah.ca/salahschedule.js",
+        "/legacy-musallah-prayers/data/jumuah.csv",
+        "/legacy-musallah-prayers/data/prayer-config.json",
+        "/legacy-musallah-prayers/favicon.ico",
+        "/legacy-musallah-prayers/icons/apple-touch-icon.png",
+        "/legacy-musallah-prayers/icons/icon-192.png",
+        "/legacy-musallah-prayers/icons/icon-512.png",
+        "/legacy-musallah-prayers/index.html",
+        "/legacy-musallah-prayers/main-MGWPBTCI.js",
+        "/legacy-musallah-prayers/manifest.webmanifest",
+        "/legacy-musallah-prayers/styles-3KCPOHMS.css"
+      ],
+      "patterns": []
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "published-data",
+      "patterns": [
+        "https:\\/\\/raw\\.githubusercontent\\.com\\/.*"
+      ],
+      "strategy": "freshness",
+      "maxSize": 20,
+      "maxAge": 2592000000,
+      "timeoutMs": 5000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    },
+    {
+      "name": "fonts",
+      "patterns": [
+        "https:\\/\\/fonts\\.googleapis\\.com\\/.*",
+        "https:\\/\\/fonts\\.gstatic\\.com\\/.*"
+      ],
+      "strategy": "performance",
+      "maxSize": 30,
+      "maxAge": 31536000000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    }
+  ],
+  "hashTable": {
+    "/legacy-musallah-prayers/chunk-B3hbw1WF.js": "c823cd23b867dc42dce39175863a53a5e592cfe5",
+    "/legacy-musallah-prayers/chunk-BIdIRLID.js": "c94ffbda3a452883c7a5b335a1b88e1b6bab2207",
+    "/legacy-musallah-prayers/chunk-BONP0Gkc.js": "873d97b863495d419cf040a35cc2a986765b1b79",
+    "/legacy-musallah-prayers/chunk-CkAcWJ-J.js": "c1b5de8f6c33110cc8e84bd54b82b1411e463fbe",
+    "/legacy-musallah-prayers/chunk-D4-mg-MI.js": "6971d6a34ee47daeca1853253a02a58432b1a301",
+    "/legacy-musallah-prayers/chunk-ErS7GGcd.js": "64a0c019da5a73e520f16d46dbb410069da5fbec",
+    "/legacy-musallah-prayers/data/ICSC_Iqamah_Schedule_fullyear2026_2027.csv": "8260d9fe40997149c470711190259a6cfb92eaa2",
+    "/legacy-musallah-prayers/data/README.md": "3ed926258d69c190d4b88ee4d7f0e6d3a699eb3d",
+    "/legacy-musallah-prayers/data/iqamah.ca/salahschedule.js": "9b4aff5015f04125a8279bfa6df0c081300f4bef",
+    "/legacy-musallah-prayers/data/jumuah.csv": "36bd9780d96c5454d540761eb177b885bc87213b",
+    "/legacy-musallah-prayers/data/prayer-config.json": "5eb0eb6b754d56132569ebdcfbf8c192c584b659",
+    "/legacy-musallah-prayers/favicon.ico": "9c39f434fe1261f68c5e3eefdf734630d99c5670",
+    "/legacy-musallah-prayers/icons/apple-touch-icon.png": "f2df27fa14dbe351497f9da67c4ddfb29cf5788a",
+    "/legacy-musallah-prayers/icons/icon-192.png": "f69658fe0fadb6f768cdc2fb54d76a37a2094115",
+    "/legacy-musallah-prayers/icons/icon-512.png": "7fe34d9ad480e7ed9a217a04db7d7c799d30430f",
+    "/legacy-musallah-prayers/index.html": "1fc814c70fab8dfc2fbe48e776bab5eda8006f59",
+    "/legacy-musallah-prayers/main-MGWPBTCI.js": "05d5a96da1db3b90755bf7bb270c4d0dcb8056b3",
+    "/legacy-musallah-prayers/manifest.webmanifest": "fc1cf8290665fa98108d318314ea7d6ca1ceade0",
+    "/legacy-musallah-prayers/styles-3KCPOHMS.css": "c39bf550c9f20ae1793c39be360091828945c2f4"
+  },
+  "navigationUrls": [
+    {
+      "positive": true,
+      "regex": "^\\/.*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*\\.[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*\\/.*$"
+    }
+  ],
+  "navigationRequestStrategy": "performance"
+}

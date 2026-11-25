@@ -1,0 +1,1 @@
+import"./main-MGWPBTCI.js";import"./chunk-BONP0Gkc.js";import{a as u,i as n,n as c,r as d,t as b}from"./chunk-D4-mg-MI.js";export{u as appOptions,b as db,d as firebaseApp,n as firebaseConfig,c as useEmulator};

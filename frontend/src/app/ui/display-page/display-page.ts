@@ -4,6 +4,7 @@ import { Display } from '../../core/display';
 import { launchParams } from '../../core/launch-params';
 import { IqamahChime } from '../../core/iqamah-chime';
 import { PrayerStore } from '../../core/prayer-store';
+import { CalendarPanel } from '../calendar-panel/calendar-panel';
 import { Jumuah } from '../jumuah/jumuah';
 import { SkyBackdrop } from '../sky-backdrop/sky-backdrop';
 import { SunScene } from '../sun-scene/sun-scene';
@@ -12,7 +13,7 @@ import { TodayTimes } from '../today-times/today-times';
 
 @Component({
   selector: 'app-display-page',
-  imports: [SkyBackdrop, SunScene, TodayTimes, Jumuah, TimeTravel],
+  imports: [SkyBackdrop, SunScene, TodayTimes, Jumuah, TimeTravel, CalendarPanel],
   templateUrl: './display-page.html',
   styleUrl: './display-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
