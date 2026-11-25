@@ -36,12 +36,14 @@ const FETCH_TIMEOUT_MS = 15_000;
 const CALENDAR_NAME = 'Legacy Musallah Prayer Times';
 /** How often calendar apps that honour it (Apple, Outlook) should re-fetch. */
 const REFRESH = 'PT3H';
+/** How long each prayer's event lasts from its iqamah. */
+const PRAYER_MINUTES = 15;
 
 interface CalEvent {
   uid: string;
   start: Date;
   end: Date;
-  /** Reminders count back from the iqamah (events run from adhan to the end of the prayer's time). */
+  /** Reminders count back from the iqamah (each event starts at its iqamah). */
   iqamah: Date;
   summary: string;
   description: string;
@@ -49,6 +51,7 @@ interface CalEvent {
   salah?: SalahKey;
   /** "7:50 AM", for the alert text. */
   iqamahLabel: string;
+  adhanLabel: string;
 }
 
 // ----- Arguments -----
@@ -130,9 +133,8 @@ function buildEvents(inputs: ScheduleInputs, jumuah: JumuahSlot[], masjid: strin
     const salah = publishedSalahOn(inputs, ymd);
     if (!salah) continue; // No published schedule for this date: leave it out rather than guess.
 
-    // Each event lasts the prayer's whole time, as the display's NOW marker does, so a calendar shows
-    // Zuhr until Asr begins rather than jumping to Asr once Zuhr's iqamah has passed.
-    // Isha ends at midnight instead of the next Fajr, to keep it out of the next day's view.
+    // Each event is the congregational prayer itself: it starts at the iqamah and lasts PRAYER_MINUTES.
+    // The adhan goes in the title, so the reminder shows it too; when the prayer's time ends goes in the notes.
     const { sunrise } = publishedSun(inputs, ymd, computeDay(ymd, inputs.location, inputs.method));
     const ends: Record<SalahKey, { at: Date; label: string }> = {
       fajr: { at: sunrise, label: 'sunrise' },
@@ -143,17 +145,17 @@ function buildEvents(inputs: ScheduleInputs, jumuah: JumuahSlot[], masjid: strin
     };
     for (const key of PRAYER_KEYS) {
       const { adhan, iqamah } = salah[key];
-      const end = new Date(Math.max(ends[key].at.getTime(), iqamah.getTime(), adhan.getTime()));
       const until = key === 'isha' ? '' : `\n${PRAYER_NAMES[key]} time ends ${t(ends[key].at)} (${ends[key].label})`;
       events.push({
         uid: `${date}-${key}`,
-        start: adhan,
-        end,
+        start: iqamah,
+        end: new Date(iqamah.getTime() + PRAYER_MINUTES * 60_000),
         iqamah,
-        summary: `${PRAYER_NAMES[key]} · Iqamah ${t(iqamah)}`,
+        summary: `${PRAYER_NAMES[key]} · Adhan ${t(adhan)}`,
         description: `Adhan ${t(adhan)} · Iqamah ${t(iqamah)}${until}\n${masjid}`,
         salah: key,
         iqamahLabel: t(iqamah),
+        adhanLabel: t(adhan),
       });
     }
 
@@ -167,12 +169,13 @@ function buildEvents(inputs: ScheduleInputs, jumuah: JumuahSlot[], masjid: strin
         const khutbah = slot.khutbah === null ? '' : `Khutbah ${t(zonedDateTime(ymd, slot.khutbah, tz))} · `;
         events.push({
           uid: `${date}-jumuah-${n + 1}`,
-          start: adhan < iqamah ? adhan : iqamah,
-          end: iqamah,
+          start: iqamah,
+          end: new Date(iqamah.getTime() + PRAYER_MINUTES * 60_000),
           iqamah,
-          summary: `${slot.name} · Iqamah ${t(iqamah)}`,
-          description: `${khutbah}Iqamah ${t(iqamah)}\n${slot.location || masjid}`,
+          summary: `${slot.name} · Adhan ${t(adhan)}`,
+          description: `Adhan ${t(adhan)} · ${khutbah}Iqamah ${t(iqamah)}\n${slot.location || masjid}`,
           iqamahLabel: t(iqamah),
+          adhanLabel: t(adhan),
         });
       });
     }
@@ -207,14 +210,14 @@ function fold(line: string): string {
   return parts.join('\r\n ');
 }
 
-/** Alert `minutes` before the iqamah, written relative to the event start (the adhan). */
-function alarm(event: CalEvent, minutes: number, iqamah: string): string[] {
+/** Alert `minutes` before the iqamah, written relative to the event start. */
+function alarm(event: CalEvent, minutes: number, iqamah: string, adhan: string): string[] {
   const offset = Math.round((event.iqamah.getTime() - event.start.getTime()) / 60_000) - minutes;
   const trigger = offset < 0 ? `-PT${-offset}M` : `PT${offset}M`;
   return [
     'BEGIN:VALARM',
     'ACTION:DISPLAY',
-    `DESCRIPTION:${escapeText(`${PRAYER_NAMES[event.salah!]} iqamah in ${minutes} minutes (${iqamah})`)}`,
+    `DESCRIPTION:${escapeText(`${PRAYER_NAMES[event.salah!]} · Adhan ${adhan} · Iqamah ${iqamah} (in ${minutes} minutes)`)}`,
     `TRIGGER:${trigger}`,
     'END:VALARM',
   ];
@@ -228,7 +231,7 @@ function buildIcs(events: CalEvent[], reminders: Reminders, location: string, st
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeText(CALENDAR_NAME)}`,
-    `X-WR-CALDESC:${escapeText('Each prayer from its adhan to the end of its time, and Jumu\'ah. Updates automatically.')}`,
+    `X-WR-CALDESC:${escapeText('Each prayer and Jumu\'ah at its iqamah, with the adhan time in the title. Updates automatically.')}`,
     `REFRESH-INTERVAL;VALUE=DURATION:${REFRESH}`,
     `X-PUBLISHED-TTL:${REFRESH}`,
   ];
@@ -245,7 +248,7 @@ function buildIcs(events: CalEvent[], reminders: Reminders, location: string, st
       'TRANSP:TRANSPARENT',
     );
     const minutes = e.salah ? reminders[e.salah] : 0;
-    if (minutes) lines.push(...alarm(e, minutes, e.iqamahLabel));
+    if (minutes) lines.push(...alarm(e, minutes, e.iqamahLabel, e.adhanLabel));
     lines.push('END:VEVENT');
   }
   lines.push('END:VCALENDAR');
